@@ -1,4 +1,11 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import BOMViewSet, ProductionViewSet
 
-from django.urls import path
+router = DefaultRouter()
+router.register(r'bom', BOMViewSet, basename='bom')
+router.register(r'production', ProductionViewSet, basename='production')
 
-urlpatterns = []
+urlpatterns = [
+    path('', include(router.urls)),
+]

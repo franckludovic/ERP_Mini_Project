@@ -100,27 +100,27 @@ python manage.py test plugins.orders_plugin
 ## Customer
 
 1. Can create an account by registering on the platform.
-2. Can place an order and select their customer grade (1st grade, 2nd grade, or 3rd grade).
+2. Can place an order and select their customer grade (1st grade, 2nd grade, or 3rd grade). Note: If the user selects a higher grade than the ordered quantity permits, the system automatically adjusts the grade to match the quantity.
 
 ## Admin
 
 3. Can view all orders placed by customers and validate them.
-4. Can detect and validate urgent orders. An order is considered urgent when the quantity ordered does not match the customer's grade for example, a 3rd grade customer ordering a 1st grade quantity.
-6. Can set discounts for premium customers. A customer becomes premium after placing at least 7 orders with a total cumulated value of 3,000,000 XAF or more, and receives a 4% discount on subsequent orders.
-7. Can view the warehouse contents and browse each product in stock.
-8. Can generate reports covering orders, production activity, and supplier information.
+4. Can detect and validate exceptional orders. An order is flagged for review when the quantity ordered exceeds the normal capacity of the customer's grade (e.g., a 3rd grade customer ordering a 1st grade quantity).
+5. Can set discounts for premium customers. A customer becomes premium after placing at least 7 orders with a total cumulated value of 3,000,000 XAF or more, and receives a 4% discount on subsequent orders.
+6. Can view the warehouse contents and browse each product in stock.
+7. Can generate reports covering orders, production activity, and supplier information.
 
 Product Manager
 
-9. Can initiate a production order with a priority level: Low, Urgent, or Out-of-stock.
-10. Can initiate a delivery with a status of either In-Stock or Urgent.
-11. Can view the stock status of any product or raw material, including whether it is out of stock.
-12. Can track the exact quantity of materials required to produce a given product.
-13. Can update product information such as quantities produced.
+8. Can initiate a production order with a priority level: Low, Normal, or High (e.g., triggered by out-of-stock inventory).
+9. Can initiate a delivery and track its shipping status (e.g., Pending, Shipped, Delivered).
+10. Can view the stock status of any product or raw material, including whether it is out of stock.
+11. Can track the exact quantity of materials required to produce a given product.
+12. Can update product information such as quantities produced.
 
 ## All Users
 
-14. Can log in to the platform using their credentials
+13. Can log in to the platform using their credentials
 
 ---
 
