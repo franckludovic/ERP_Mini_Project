@@ -47,6 +47,7 @@ python manage.py runserver
 ```
 
 The API is now available at `http://127.0.0.1:8000/`
+The admin pannel is at `http://127.0.0.1:8000/admin`
 
 ---
 
