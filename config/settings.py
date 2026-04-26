@@ -41,11 +41,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
 
-    'plugins.auth_plugin',
-    'plugins.customer_plugin',
-    'plugins.admin_plugin',
-    'plugins.product_manager_plugin',
-    'plugins.warehouse_plugin',
+    'plugins.users_plugin',
+    'plugins.orders_plugin',
+    'plugins.notifications_plugin',
+    'plugins.mrp_production_plugin',
+    'plugins.inventory_plugin',
 ]
 
 MIDDLEWARE = [
@@ -147,3 +147,4 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+AUTH_USER_MODEL = 'users_plugin.User'

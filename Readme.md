@@ -1,7 +1,4 @@
-# ERP — Material Requirement Planning System
-> Wood and Woodworks Product Planning Platform · Django REST Framework · JWT Auth
 
----
 
 ## Project Overview
 
@@ -22,6 +19,7 @@ cd erp_project
 # Windows
 python -m venv venv
 venv\Scripts\activate
+```
 
 ### 3. Install dependencies
 
@@ -49,7 +47,8 @@ ALLOWED_HOSTS=127.0.0.1,localhost
 python manage.py migrate
 ```
 
-### 6. Create a superuser (optional, for Django admin panel)
+### 6. Create a superuser (Required for local Django admin access)
+Note: Each team member must run this locally to view and manage models in the browser.
 
 ```bash
 python manage.py createsuperuser
@@ -76,7 +75,6 @@ Each member works on their own branch and **never edits another member's plugin 
 git checkout -b feature/your-plugin-name
 
 # work on your plugin only
-# when ready, push
 git push origin feature/your-plugin-name
 
 # open a pull request to merge into main
@@ -106,24 +104,12 @@ Always commit your migration files — teammates need them to keep their local d
 python manage.py test
 
 # run tests for one plugin only
-python manage.py test plugins.customer_plugin
+python manage.py test plugins.orders_plugin
 ```
 
----
 
-## Environment Variables Reference
-
-
- `SECRET_KEY`   : Django secret key keep private
- `DEBUG`        : Enable debug mode example `True` 
- `ALLOWED_HOSTS`: Comma-separated list of allowed hosts like `127.0.0.1, 0.0.0.0, etc` 
-
----
 
 ## Functional Requirements Summary
-
-Functional Requirements Summary
-
 
 ## Customer
 
@@ -149,3 +135,13 @@ Product Manager
 ## All Users
 
 14. Can log in to the platform using their credentials
+
+---
+
+## Team Module Assignments
+
+1. **User management + Final integration**: Gloria (`users_plugin`)
+2. **Inventory management**: Paho Tchaptchet (`inventory_plugin`)
+3. **Order management**: Mbiangoupii Ngoba Reine (`orders_plugin`)
+4. **Notification management**: Joky Diane (`notifications_plugin`)
+5. **MRP module + Production module**: Tankeu Ndosse Franck (`mrp_production_plugin`)

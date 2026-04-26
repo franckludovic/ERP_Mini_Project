@@ -18,9 +18,9 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('api/auth/',     include('plugins.auth_plugin.urls')),
-    path('api/customer/', include('plugins.customer_plugin.urls')),
-    path('api/admin/',    include('plugins.admin_plugin.urls')),
-    path('api/products/', include('plugins.product_manager_plugin.urls')),
-    path('api/warehouse/',include('plugins.warehouse_plugin.urls')),
+    path('api/users/',        include('plugins.users_plugin.urls')),
+    path('api/orders/',       include('plugins.orders_plugin.urls')),
+    path('api/notifications/',include('plugins.notifications_plugin.urls')),
+    path('api/mrp/',          include('plugins.mrp_production_plugin.urls')),
+    path('api/inventory/',    include('plugins.inventory_plugin.urls')),
 ]
