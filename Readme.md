@@ -10,7 +10,7 @@ This is a team ERP project built with a **plugin architecture** — each team me
 
 ```bash
 git clone <your-repo-url>
-cd erp_project
+cd ERP_Mini_project
 ```
 
 ### 2. Create and activate a virtual environment
@@ -27,34 +27,20 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Set up environment variables
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and fill in your values:
-
-```
-SECRET_KEY=your-secret-key-here
-DEBUG=True
-ALLOWED_HOSTS=127.0.0.1,localhost
-```
-
-### 5. Run migrations
+### 4. Run migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 6. Create a superuser (Required for local Django admin access)
+### 5. Create a superuser (Required for local Django admin access)
 Note: Each team member must run this locally to view and manage models in the browser.
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 7. Start the development server
+### 6. Start the development server
 
 ```bash
 python manage.py runserver
@@ -63,7 +49,6 @@ python manage.py runserver
 The API is now available at `http://127.0.0.1:8000/`
 
 ---
-
 
 
 ## Git Workflow
