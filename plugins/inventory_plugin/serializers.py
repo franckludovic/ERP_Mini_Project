@@ -30,11 +30,17 @@ class addOrRemoveProductSerializer(serializers.ModelSerializer):
 
 # -------- MATERIAL --------
 class MaterialSerializer(serializers.ModelSerializer):
-    supplier = serializers.CharField(source="supplier.name", read_only=True)
+    supplier = serializers.PrimaryKeyRelatedField(
+        queryset=Supplier.objects.all()
+    )
+    supplier_name = serializers.CharField(
+        source="supplier.name",
+        read_only=True
+    )
 
     class Meta:
         model = Material
-        fields = '__all__'
+        fields = ['id', 'name', 'quantity_in_stock', 'supplier', 'supplier_name']
 
 class GetSingleMaterialSerializer(serializers.Serializer):
     id = serializers.IntegerField()

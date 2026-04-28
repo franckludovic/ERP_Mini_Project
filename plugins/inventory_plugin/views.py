@@ -146,7 +146,7 @@ def updateMaterial(request):
             return Response({"Error": "Material with this id not found"}, status=status.HTTP_404_NOT_FOUND)
     return Response({"Error": "Invalid Payload"}, status=status.HTTP_400_BAD_REQUEST)
 
-#Add product quantity
+#Add material quantity
 @api_view(['PATCH'])
 def addMaterialQuantity(request):
     serializer = addOrRemoveMaterialSerializer(data=request.data, partial=True)
@@ -162,7 +162,7 @@ def addMaterialQuantity(request):
             return Response({"Error": "Material with this id not found"}, status=status.HTTP_404_NOT_FOUND)
     return Response({"Error": "Invalid Payload"}, status=status.HTTP_400_BAD_REQUEST)
 
-#Reduce product quantity
+#Reduce material quantity
 @api_view(['PATCH'])
 def reduceMaterialQuantity(request):
     serializer = addOrRemoveMaterialSerializer(data=request.data, partial=True)
@@ -178,17 +178,17 @@ def reduceMaterialQuantity(request):
             return Response({"Error": "Material with this id not found"}, status=status.HTTP_404_NOT_FOUND)
     return Response({"Error": "Invalid Payload"}, status=status.HTTP_400_BAD_REQUEST)
 
-#Delete product
+#Delete material
 @api_view(['DELETE'])
 def deleteMaterial(request):
-    serializer = DeleteProductSerializer(data=request.data)
+    serializer = DeleteMaterialSerializer(data=request.data)
     if serializer.is_valid():
         material_id = serializer.validated_data['id']
         try:
             material = Material.objects.get(id=material_id)
             material.delete()
             return Response({"Message": f"Material with id {material_id} successfully deleted"}, status=status.HTTP_204_NO_CONTENT)
-        except Product.DoesNotExist:
+        except Material.DoesNotExist:
             return Response({"Error": "Material with this id not found"}, status=status.HTTP_404_NOT_FOUND)
     return Response({"Error": "Invalid Payload"}, status=status.HTTP_400_BAD_REQUEST)
 
