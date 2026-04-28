@@ -19,6 +19,7 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.views.generic import TemplateView
 from plugins.orders_plugin import views as order_views
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('mrp_dashboard/',    TemplateView.as_view(template_name='mrp_dashboard.html'), name='mrp_dashboard'),
@@ -31,4 +32,6 @@ urlpatterns = [
     path('api/notifications/',include('plugins.notifications_plugin.urls')),
     path('api/mrp/',          include('plugins.mrp_production_plugin.urls')),
     path('api/inventory/',    include('plugins.inventory_plugin.urls')),
+
+    path('inventory_dashboard/', TemplateView.as_view(template_name='inventory_dashboard.html')),
 ]

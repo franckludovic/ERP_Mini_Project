@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Inventory</title>
+</head>
+
+<body class="bg-slate-50 p-6">
+
+<div class="max-w-6xl mx-auto">
+
+  <!-- Toggle Buttons -->
+
+  <div class="flex gap-2 mb-4">
+    <button id="btnProducts" class="px-4 py-2 bg-indigo-600 text-white rounded">Products</button>
+    <button id="btnMaterials" class="px-4 py-2 bg-slate-200 rounded">Materials</button>
+  </div>
+
+  <!-- PRODUCTS TABLE -->
+
+  <div id="productsTable">
+    <h2 class="text-xl font-bold mb-2">Products</h2>
+    <table class="w-full bg-white border border-slate-200 table-fixed">
+      <thead class="bg-slate-100">
+        <tr class="text-left">
+          <th class="p-3 w-16">ID</th>
+          <th class="p-3">Name</th>
+          <th class="p-3 w-32 text-center">Quantity</th>
+          <th class="p-3 w-32 text-center">Price</th>
+          <th class="p-3 w-40 text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="productsBody" class="divide-y"></tbody>
+    </table>
+  
+  </div>
+  
+  
+
+  <!-- MATERIALS TABLE -->
+
+  <div id="materialsTable" class="hidden">
+    <h2 class="text-xl font-bold mb-2">Materials</h2>
+    <table class="w-full bg-white border border-slate-200 table-fixed">
+      <thead class="bg-slate-100">
+        <tr>
+          <th class="p-2">ID</th>
+          <th class="p-2">Name</th>
+          <th class="p-2">Quantity</th>
+          <th class="p-2">Supplier</th>
+          <th class="p-2">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="materialsBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = "http://localhost:8000/api/inventory";
+const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc3Mzg0MzE1LCJpYXQiOjE3NzczODA3MTUsImp0aSI6ImQ1OTU2M2RmYzRjNDQ1ODg4ZDQwZWYwZGFkMDJkODk2IiwidXNlcl9pZCI6IjEifQ.LcDsaCZS9t_5LJQoqmPDuzv8ES6dt-Dxo5cHX6PPdtY";
+
+const btnProducts = document.getElementById("btnProducts");
+const btnMaterials = document.getElementById("btnMaterials");
+
+const productsTable = document.getElementById("productsTable");
+const materialsTable = document.getElementById("materialsTable");
+
+btnProducts.onclick = () => {
+  productsTable.classList.remove("hidden");
+  materialsTable.classList.add("hidden");
+
+  btnProducts.classList.remove('bg-slate-200')
+  btnProducts.classList.add('bg-indigo-600',"text-white");
+  btnMaterials.classList.remove("bg-indigo-600","text-white");
+  btnMaterials.classList.add('bg-slate-200');
+};
+
+btnMaterials.onclick = () => {
+  materialsTable.classList.remove("hidden");
+  productsTable.classList.add("hidden");
+
+  btnMaterials.classList.remove('bg-slate-200')
+  btnMaterials.classList.add("bg-indigo-600","text-white");
+  btnProducts.classList.remove("bg-indigo-600","text-white");
+  btnProducts.classList.add('bg-slate-200')
+};
+
+async function loadProducts() {
+  const res = await fetch(`${API_BASE}/all-products`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+  });
+  const data = await res.json();
+
+  const tbody = document.getElementById("productsBody");
+  tbody.innerHTML = "";
+
+  data.forEach(p => {
+    tbody.innerHTML += `
+  <tr class="hover:bg-slate-50">
+    <td class="p-3 align-middle">${p.id}</td>
+    <td class="p-3 align-middle font-medium">${p.name}</td>
+    <td class="p-3 text-center align-middle">${p.quantity_in_stock}</td>
+    <td class="p-3 text-center align-middle">$${parseFloat(p.unit_price).toFixed(2)}</td>
+    <td class="p-3 align-middle">
+      <div class="flex justify-center gap-2">
+        <button class="px-2 py-1 bg-green-100 rounded" onclick="addStock(${p.id})">➕</button>
+        <button class="px-2 py-1 bg-yellow-100 rounded" onclick="reduceStock(${p.id})">➖</button>
+        <button class="px-2 py-1 bg-red-100 rounded" onclick="deleteProduct(${p.id})">🗑</button>
+      </div>
+    </td>
+  </tr>
+`;
+  });
+}
+
+// ---------- LOAD MATERIALS ----------
+async function loadMaterials() {
+  const res = await fetch(`${API_BASE}/all-materials`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+  });
+  const data = await res.json();
+  console.log(data);
+
+  const tbody = document.getElementById("materialsBody");
+  tbody.innerHTML = "";
+
+  data.forEach(m => {
+    tbody.innerHTML += `
+  <tr class="hover:bg-slate-50">
+    <td class="p-3 align-middle">${m.id}</td>
+    <td class="p-3 align-middle font-medium">${m.name}</td>
+    <td class="p-3 text-center align-middle">${m.quantity_in_stock}</td>
+    <td class="p-3 text-center align-middle">${m.supplier_name || "-"}</td>
+    <td class="p-3 align-middle">
+      <div class="flex justify-center gap-2">
+        <button class="px-2 py-1 bg-green-100 rounded" onclick="addMaterial(${m.id})">➕</button>
+        <button class="px-2 py-1 bg-yellow-100 rounded" onclick="reduceMaterial(${m.id})">➖</button>
+      </div>
+    </td>
+  </tr>
+`;
+  });
+}
+
+// ---------- ACTIONS ----------
+async function addStock(id) {
+  const qty = prompt("Quantity to add:");
+  await fetch(`${API_BASE}/add-product`, {
+    method: "PATCH",
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id, quantity: parseInt(qty) })
+  });
+  loadProducts();
+}
+
+async function reduceStock(id) {
+  const qty = prompt("Quantity to reduce:");
+  await fetch(`${API_BASE}/reduce-product`, {
+    method: "PATCH",
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id, quantity: parseInt(qty) })
+  });
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+  await fetch(`${API_BASE}/delete-product`, {
+    method: "DELETE",
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id })
+  });
+  loadProducts();
+}
+
+// ---------- MATERIAL ACTIONS ----------
+async function addMaterial(id) {
+  const qty = prompt("Quantity to add:");
+  await fetch(`${API_BASE}/add-material`, {
+    method: "PATCH",
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id, quantity: parseFloat(qty) })
+  });
+  loadMaterials();
+}
+
+async function reduceMaterial(id) {
+  const qty = prompt("Quantity to reduce:");
+  await fetch(`${API_BASE}/reduce-material`, {
+    method: "PATCH",
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id, quantity: parseFloat(qty) })
+  });
+  loadMaterials();
+}
+
+// ---------- INIT ----------
+loadProducts();
+loadMaterials();
+</script>
+
+</body>
+</html>
