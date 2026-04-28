@@ -253,7 +253,7 @@ def dashboard_view(request):
         'orders': orders,
     }
     
-    return render(request, 'orders_plugin/dashboard.html', context)
+    return render(request, 'order_dashboard.html', context)
 
 
 # from django.contrib.auth.decorators import login_required
@@ -310,4 +310,4 @@ def customer_dashboard_view(request):
         'mock_products': mock_products,
     }
     
-    return render(request, 'orders_plugin/customer_dashboard.html', context)
+    return render(request, 'customer_dashboard.html', context)

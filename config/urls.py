@@ -18,9 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.views.generic import TemplateView
+from plugins.orders_plugin import views as order_views
 
 urlpatterns = [
     path('mrp_dashboard/',    TemplateView.as_view(template_name='mrp_dashboard.html'), name='mrp_dashboard'),
+    path('order_dashboard/',     order_views.dashboard_view, name='order_dashboard'),
+    path('customer_dashboard/',  order_views.customer_dashboard_view, name='customer_dashboard'),
     path('api/token/',        TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('admin/',            admin.site.urls),
     path('api/users/',        include('plugins.users_plugin.urls')),
