@@ -39,6 +39,22 @@ class OrderViewSet(viewsets.ModelViewSet):
         validated_data = serializer.validated_data
         user_id = validated_data['user_id']
         items_data = validated_data['items']
+
+        # Check if user is banned
+        from plugins.users_plugin.models import User
+        from django.utils import timezone
+        user = User.objects.get(pk=user_id)
+        if user.is_banned:
+            if user.ban_until and user.ban_until > timezone.now():
+                return Response({
+                    'error': 'Account Banned',
+                    'message': f'Your account is banned until {user.ban_until.strftime("%Y-%m-%d %H:%M")}'
+                }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                # Ban expired
+                user.is_banned = False
+                user.ban_until = None
+                user.save()
         
         # Calculate subtotal
         subtotal = 0
@@ -65,7 +81,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             total_amount=total_price,
             discount_applied=discount_amount,
             priority='normal',
-            status='pending'
+            status='pending',
+            grade=request.data.get('grade')
         )
         
         # Create order items
@@ -238,18 +255,33 @@ def dashboard_view(request):
     
     # Calculate metrics
     total_active_orders = Order.objects.exclude(status__in=['completed', 'rejected']).count()
-    urgent_mismatches = Order.objects.filter(priority='urgent', status__in=['pending', 'validated']).count()
+    urgent_orders = Order.objects.filter(priority='urgent').exclude(status__in=['completed', 'rejected']).count()
+    
+    pending_count = Order.objects.filter(status='pending').count()
+    rejected_count = Order.objects.filter(status='rejected').count()
+    completed_count = Order.objects.filter(status='completed').count()
     
     pending_value_dict = Order.objects.filter(status='pending').aggregate(total=Sum('total_amount'))
     pending_value = pending_value_dict['total'] or 0
     
+    # Grade based analytics
+    grade_1_count = Order.objects.filter(grade='1st').count()
+    grade_2_count = Order.objects.filter(grade='2nd').count()
+    grade_3_count = Order.objects.filter(grade='3rd').count()
+
     # Get latest orders for the table
     orders = Order.objects.all().select_related('customer').order_by('-created_at')[:20]
     
     context = {
         'total_active_orders': total_active_orders,
-        'urgent_mismatches': urgent_mismatches,
+        'urgent_orders': urgent_orders,
+        'pending_count': pending_count,
+        'rejected_count': rejected_count,
+        'completed_count': completed_count,
         'pending_value': pending_value,
+        'grade_1_count': grade_1_count,
+        'grade_2_count': grade_2_count,
+        'grade_3_count': grade_3_count,
         'orders': orders,
     }
     
@@ -293,12 +325,9 @@ def customer_dashboard_view(request):
     spent_progress = min((float(total_spent) / 3000000.0) * 100, 100)
     progress_percent = int((orders_progress + spent_progress) / 2)
     
-    # Mock products for the order form (to be replaced with inventory integration)
-    mock_products = [
-        {'id': 1, 'name': 'Industrial Raw Materials', 'unit_price': 15000},
-        {'id': 2, 'name': 'Office Supplies', 'unit_price': 2500},
-        {'id': 3, 'name': 'Tech Components', 'unit_price': 45000},
-    ]
+    # Real products from inventory
+    from plugins.inventory_plugin.models import Product
+    real_products = Product.objects.all()
     
     context = {
         'customer': customer,
@@ -307,7 +336,30 @@ def customer_dashboard_view(request):
         'active_shipments_count': active_shipments_count,
         'orders': orders,
         'progress_percent': progress_percent,
-        'mock_products': mock_products,
+        'products': real_products,
+        'grade_choices': User.GRADE_CHOICES,
     }
     
     return render(request, 'customer_dashboard.html', context)
+
+
+def order_history_view(request):
+    """Render the HTML order history page for customers"""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    if request.user.is_authenticated:
+        customer = request.user
+    else:
+        customer = User.objects.filter(role='customer').first()
+        
+    if not customer:
+        customer = User.objects.first()
+        
+    orders = Order.objects.filter(customer=customer).order_by('-created_at')
+    
+    context = {
+        'customer': customer,
+        'orders': orders,
+    }
+    return render(request, 'order_history.html', context)

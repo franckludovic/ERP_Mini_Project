@@ -19,12 +19,14 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.views.generic import TemplateView
 from plugins.orders_plugin import views as order_views
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/api/users/login/'), name='root-redirect'),
     path('mrp_dashboard/',    TemplateView.as_view(template_name='mrp_dashboard.html'), name='mrp_dashboard'),
     path('order_dashboard/',     order_views.dashboard_view, name='order_dashboard'),
     path('customer_dashboard/',  order_views.customer_dashboard_view, name='customer_dashboard'),
+    path('order_history/',       order_views.order_history_view, name='order_history'),
     path('api/token/',        TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('admin/',            admin.site.urls),
     path('api/users/',        include('plugins.users_plugin.urls')),
@@ -33,5 +35,5 @@ urlpatterns = [
     path('api/mrp/',          include('plugins.mrp_production_plugin.urls')),
     path('api/inventory/',    include('plugins.inventory_plugin.urls')),
 
-    path('inventory_dashboard/', TemplateView.as_view(template_name='inventory_dashboard.html')),
+    path('inventory_dashboard/', include('plugins.inventory_plugin.urls_dashboard')),
 ]

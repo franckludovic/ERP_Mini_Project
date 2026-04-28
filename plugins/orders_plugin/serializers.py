@@ -61,11 +61,13 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     """Serializer for displaying an order with all its items"""
     
     items = OrderItemSerializer(many=True, read_only=True)
-    
+    customer_name = serializers.ReadOnlyField(source='customer.username')
+    customer_grade = serializers.ReadOnlyField(source='customer.grade')
+
     class Meta:
         model = Order
         fields = [
-            'id', 'customer', 'status', 'priority', 
+            'id', 'customer', 'customer_name', 'customer_grade', 'status', 'priority', 
             'total_amount', 'discount_applied', 'created_at', 
-            'updated_at', 'items'
+            'updated_at', 'expected_delivery_date', 'items'
         ]

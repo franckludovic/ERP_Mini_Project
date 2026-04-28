@@ -1,230 +1,433 @@
 <!DOCTYPE html>
-
-<html lang="en">
+<html class="light" lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <title>Inventory</title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Nexus ERP - Inventory</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #fcf8ff;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+    </style>
 </head>
+<body class="font-body-md text-on-surface">
 
-<body class="bg-slate-50 p-6">
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_rgba(15,23,42,0.02)] flex flex-col p-4 gap-2 z-50">
+    <div class="mb-8 px-4 text-center">
+        <h1 class="text-2xl font-black text-indigo-600 tracking-tighter">NEXUS</h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Enterprise Suite</p>
+    </div>
+    <nav class="flex-1 flex flex-col gap-1">
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="{% url 'user-management' %}">
+            <span class="material-symbols-outlined">group</span>
+            <span>User Management</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="{% url 'order_dashboard' %}">
+            <span class="material-symbols-outlined">shopping_cart</span>
+            <span>Orders</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-['Inter'] text-sm font-semibold" href="{% url 'inventory_dashboard' %}">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+            <span>Inventory</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="#">
+            <span class="material-symbols-outlined">notifications</span>
+            <span>Notifications</span>
+        </a>
+    </nav>
+    <div class="mt-auto p-4 border-t">
+        <a href="{% url 'logout' %}" class="flex items-center gap-3 text-red-600 hover:text-red-700 text-sm font-medium">
+            <span class="material-symbols-outlined">logout</span>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
 
-<div class="max-w-6xl mx-auto">
+<main class="ml-64 min-h-screen">
+    <header class="flex justify-between items-center h-16 w-full px-8 sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 shadow-sm">
+        <div class="flex items-center gap-4">
+            <h2 class="text-lg font-bold tracking-tight text-slate-900">Inventory Dashboard</h2>
+            <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Admin Control</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex flex-col items-end">
+                <span class="text-xs font-bold text-slate-900">{{ admin.username|default:"Admin" }}</span>
+                <span class="text-[10px] text-slate-500 font-medium uppercase">System Administrator</span>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+                {{ admin.username|default:"A"|make_list|first|upper }}
+            </div>
+        </div>
+    </header>
 
-  <!-- Toggle Buttons -->
+    <div class="p-8 max-w-7xl mx-auto space-y-6">
+        <!-- Tabs & Actions -->
+        <div class="flex justify-between items-center">
+            <div class="flex p-1 bg-slate-100 rounded-xl w-fit">
+                <button id="btnProducts" class="px-6 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm">Products</button>
+                <button id="btnMaterials" class="px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-slate-900">Materials</button>
+            </div>
+            <div id="action-buttons">
+                <button onclick="openModal('modal-add-product')" class="px-6 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">add</span> Add Product
+                </button>
+                <button onclick="openModal('modal-add-material')" id="btn-add-mat" class="hidden px-6 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-black transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">add</span> Add Material
+                </button>
+            </div>
+        </div>
 
-  <div class="flex gap-2 mb-4">
-    <button id="btnProducts" class="px-4 py-2 bg-indigo-600 text-white rounded">Products</button>
-    <button id="btnMaterials" class="px-4 py-2 bg-slate-200 rounded">Materials</button>
-  </div>
+        <!-- Products Table -->
+        <div id="productsTable" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50">
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">ID</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Product</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-center">Stock</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-center">Price</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsBody" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
 
-  <!-- PRODUCTS TABLE -->
+        <!-- Materials Table -->
+        <div id="materialsTable" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50">
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">ID</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Material</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-center">Stock</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-center">Price</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Supplier</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="materialsBody" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
 
-  <div id="productsTable">
-    <h2 class="text-xl font-bold mb-2">Products</h2>
-    <table class="w-full bg-white border border-slate-200 table-fixed">
-      <thead class="bg-slate-100">
-        <tr class="text-left">
-          <th class="p-3 w-16">ID</th>
-          <th class="p-3">Name</th>
-          <th class="p-3 w-32 text-center">Quantity</th>
-          <th class="p-3 w-32 text-center">Price</th>
-          <th class="p-3 w-40 text-center">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="productsBody" class="divide-y"></tbody>
-    </table>
-  
-  </div>
-  
-  
+<!-- Modal: Product Details (BOM) -->
+<div id="modal-product-details" class="modal hidden items-center justify-center">
+    <div class="bg-white rounded-3xl w-full max-w-2xl p-8 shadow-2xl relative">
+        <button onclick="closeModal('modal-product-details')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-900"><span class="material-symbols-outlined">close</span></button>
+        <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-2" id="modal-prod-name">Product Name</h3>
+        <p class="text-sm text-slate-400 font-bold mb-6" id="modal-prod-id">#PRD-0</p>
+        
+        <div class="bg-slate-50 rounded-2xl p-6">
+            <h4 class="text-xs font-black text-indigo-600 uppercase tracking-widest mb-4">Bill of Materials</h4>
+            <div class="overflow-hidden border border-slate-100 rounded-xl bg-white">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase">Material</th>
+                            <th class="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase text-center">Required</th>
+                            <th class="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase text-right">On Hand</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-bom-body" class="divide-y divide-slate-50"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-  <!-- MATERIALS TABLE -->
+<!-- Modal: Add Product -->
+<div id="modal-add-product" class="modal hidden items-center justify-center">
+    <div class="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl relative">
+        <button onclick="closeModal('modal-add-product')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-900"><span class="material-symbols-outlined">close</span></button>
+        <h3 class="text-2xl font-black text-slate-900 mb-6">Create New Product</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Product Name</label>
+                <input id="add-prod-name" type="text" placeholder="e.g. Luxury Chair" class="w-full border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-indigo-600" />
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Unit Price (FCFA)</label>
+                <input id="add-prod-price" type="number" placeholder="25000" class="w-full border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-indigo-600" />
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Materials Required</label>
+                <div class="max-h-40 overflow-y-auto border border-slate-100 rounded-xl p-4 space-y-2" id="mat-selection-list">
+                    <!-- Materials list will be injected here -->
+                </div>
+            </div>
+            <button onclick="submitCreateProduct()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all mt-4">Save Product</button>
+        </div>
+    </div>
+</div>
 
-  <div id="materialsTable" class="hidden">
-    <h2 class="text-xl font-bold mb-2">Materials</h2>
-    <table class="w-full bg-white border border-slate-200 table-fixed">
-      <thead class="bg-slate-100">
-        <tr>
-          <th class="p-2">ID</th>
-          <th class="p-2">Name</th>
-          <th class="p-2">Quantity</th>
-          <th class="p-2">Supplier</th>
-          <th class="p-2">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="materialsBody"></tbody>
-    </table>
-  </div>
-
+<!-- Modal: Add Material -->
+<div id="modal-add-material" class="modal hidden items-center justify-center">
+    <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl relative">
+        <button onclick="closeModal('modal-add-material')" class="absolute top-6 right-6 text-slate-400 hover:text-slate-900"><span class="material-symbols-outlined">close</span></button>
+        <h3 class="text-2xl font-black text-slate-900 mb-6">Create New Material</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Material Name</label>
+                <input id="add-mat-name" type="text" placeholder="e.g. Oak Wood" class="w-full border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-indigo-600" />
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Initial Quantity</label>
+                <input id="add-mat-qty" type="number" value="0" class="w-full border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-indigo-600" />
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Unit Price (FCFA)</label>
+                <input id="add-mat-price" type="number" placeholder="5000" class="w-full border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-indigo-600" />
+            </div>
+            <button onclick="submitCreateMaterial()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all mt-4">Save Material</button>
+        </div>
+    </div>
 </div>
 
 <script>
-const API_BASE = "http://localhost:8000/api/inventory";
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc3Mzg0MzE1LCJpYXQiOjE3NzczODA3MTUsImp0aSI6ImQ1OTU2M2RmYzRjNDQ1ODg4ZDQwZWYwZGFkMDJkODk2IiwidXNlcl9pZCI6IjEifQ.LcDsaCZS9t_5LJQoqmPDuzv8ES6dt-Dxo5cHX6PPdtY";
+    const API_BASE = "/api/inventory";
+    let productsData = [];
+    let materialsData = [];
 
-const btnProducts = document.getElementById("btnProducts");
-const btnMaterials = document.getElementById("btnMaterials");
+    const btnProducts = document.getElementById("btnProducts");
+    const btnMaterials = document.getElementById("btnMaterials");
+    const productsTable = document.getElementById("productsTable");
+    const materialsTable = document.getElementById("materialsTable");
+    const btnAddProd = document.querySelector('button[onclick*="modal-add-product"]');
+    const btnAddMat = document.getElementById("btn-add-mat");
 
-const productsTable = document.getElementById("productsTable");
-const materialsTable = document.getElementById("materialsTable");
+    btnProducts.onclick = () => {
+        productsTable.classList.remove("hidden");
+        materialsTable.classList.add("hidden");
+        btnAddProd.classList.remove("hidden");
+        btnAddMat.classList.add("hidden");
+        btnProducts.className = "px-6 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+        btnMaterials.className = "px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-slate-900";
+    };
 
-btnProducts.onclick = () => {
-  productsTable.classList.remove("hidden");
-  materialsTable.classList.add("hidden");
+    btnMaterials.onclick = () => {
+        materialsTable.classList.remove("hidden");
+        productsTable.classList.add("hidden");
+        btnAddProd.classList.add("hidden");
+        btnAddMat.classList.remove("hidden");
+        btnMaterials.className = "px-6 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm";
+        btnProducts.className = "px-6 py-2 rounded-lg text-sm font-bold transition-all text-slate-500 hover:text-slate-900";
+    };
 
-  btnProducts.classList.remove('bg-slate-200')
-  btnProducts.classList.add('bg-indigo-600',"text-white");
-  btnMaterials.classList.remove("bg-indigo-600","text-white");
-  btnMaterials.classList.add('bg-slate-200');
-};
+    function openModal(id) { 
+        const m = document.getElementById(id);
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+        if(id === 'modal-add-product') populateMaterialChecklist(); 
+    }
+    function closeModal(id) { 
+        const m = document.getElementById(id);
+        m.classList.remove('flex');
+        m.classList.add('hidden');
+    }
 
-btnMaterials.onclick = () => {
-  materialsTable.classList.remove("hidden");
-  productsTable.classList.add("hidden");
+    async function loadProducts() {
+        try {
+            const res = await fetch(`${API_BASE}/all-products`);
+            productsData = await res.json();
+            const tbody = document.getElementById("productsBody");
+            tbody.innerHTML = "";
+            productsData.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-xs font-bold text-slate-400 tracking-tighter">#PRD-${p.id}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-slate-900">${p.name}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-black ${p.quantity_in_stock < 5 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}">
+                                ${p.quantity_in_stock} UNITS
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center text-sm font-bold text-slate-600">${parseFloat(p.unit_price).toLocaleString()} FCFA</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="showDetails(${p.id})" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="View BOM">
+                                    <span class="material-symbols-outlined text-sm">info</span>
+                                </button>
+                                <button onclick="addStock(${p.id})" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><span class="material-symbols-outlined text-sm">add_circle</span></button>
+                                <button onclick="deleteProduct(${p.id})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><span class="material-symbols-outlined text-sm">delete</span></button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        } catch (err) { console.error(err); }
+    }
 
-  btnMaterials.classList.remove('bg-slate-200')
-  btnMaterials.classList.add("bg-indigo-600","text-white");
-  btnProducts.classList.remove("bg-indigo-600","text-white");
-  btnProducts.classList.add('bg-slate-200')
-};
+    async function loadMaterials() {
+        try {
+            const res = await fetch(`${API_BASE}/all-materials`);
+            materialsData = await res.json();
+            const tbody = document.getElementById("materialsBody");
+            tbody.innerHTML = "";
+            materialsData.forEach(m => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-xs font-bold text-slate-400 tracking-tighter">#MAT-${m.id}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-slate-900">${m.name}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600">${m.quantity_in_stock} KG/UNITS</span>
+                        </td>
+                        <td class="px-6 py-4 text-center text-sm font-bold text-slate-600">${parseFloat(m.unit_price).toLocaleString()} FCFA</td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-500">${m.supplier_name || "Internal"}</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="addMaterialQty(${m.id})" class="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><span class="material-symbols-outlined text-sm">add_circle</span></button>
+                                <button onclick="deleteMaterial(${m.id})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><span class="material-symbols-outlined text-sm">delete</span></button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        } catch (err) { console.error(err); }
+    }
 
-async function loadProducts() {
-  const res = await fetch(`${API_BASE}/all-products`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-  });
-  const data = await res.json();
+    function showDetails(id) {
+        const product = productsData.find(p => p.id === id);
+        if(!product) return;
+        document.getElementById('modal-prod-name').innerText = product.name;
+        document.getElementById('modal-prod-id').innerText = `#PRD-${product.id}`;
+        const tbody = document.getElementById('modal-bom-body');
+        tbody.innerHTML = "";
+        
+        if(product.materials && product.materials.length > 0) {
+            product.materials.forEach(m => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-4 py-3 text-sm font-bold text-slate-700">${m.material_name}</td>
+                        <td class="px-4 py-3 text-sm font-black text-indigo-600 text-center">${m.quantity_required}</td>
+                        <td class="px-4 py-3 text-right">
+                            <span class="px-2 py-1 rounded-full text-[9px] font-black ${m.material_stock < m.quantity_required ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}">
+                                ${m.material_stock} ON HAND
+                            </span>
+                        </td>
+                    </tr>`;
+            });
+        } else {
+            tbody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-xs text-slate-400 italic">No materials linked to this product.</td></tr>`;
+        }
+        openModal('modal-product-details');
+    }
 
-  const tbody = document.getElementById("productsBody");
-  tbody.innerHTML = "";
+    function populateMaterialChecklist() {
+        const list = document.getElementById('mat-selection-list');
+        list.innerHTML = "";
+        materialsData.forEach(m => {
+            list.innerHTML += `
+                <div class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg">
+                    <input type="checkbox" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 material-checkbox" value="${m.id}" data-name="${m.name}">
+                    <div class="flex-1">
+                        <p class="text-xs font-bold text-slate-700">${m.name}</p>
+                        <p class="text-[9px] text-slate-400">Stock: ${m.quantity_in_stock}</p>
+                    </div>
+                    <input type="number" class="w-16 text-xs border-slate-200 rounded material-qty" value="1" min="1" step="0.1">
+                </div>`;
+        });
+    }
 
-  data.forEach(p => {
-    tbody.innerHTML += `
-  <tr class="hover:bg-slate-50">
-    <td class="p-3 align-middle">${p.id}</td>
-    <td class="p-3 align-middle font-medium">${p.name}</td>
-    <td class="p-3 text-center align-middle">${p.quantity_in_stock}</td>
-    <td class="p-3 text-center align-middle">$${parseFloat(p.unit_price).toFixed(2)}</td>
-    <td class="p-3 align-middle">
-      <div class="flex justify-center gap-2">
-        <button class="px-2 py-1 bg-green-100 rounded" onclick="addStock(${p.id})">➕</button>
-        <button class="px-2 py-1 bg-yellow-100 rounded" onclick="reduceStock(${p.id})">➖</button>
-        <button class="px-2 py-1 bg-red-100 rounded" onclick="deleteProduct(${p.id})">🗑</button>
-      </div>
-    </td>
-  </tr>
-`;
-  });
-}
+    async function submitCreateProduct() {
+        const name = document.getElementById('add-prod-name').value;
+        const price = document.getElementById('add-prod-price').value;
+        const materials = [];
+        document.querySelectorAll('.material-checkbox:checked').forEach(cb => {
+            const qtyInput = cb.closest('div').querySelector('.material-qty');
+            materials.push({ id: parseInt(cb.value), quantity: parseFloat(qtyInput.value) });
+        });
 
-// ---------- LOAD MATERIALS ----------
-async function loadMaterials() {
-  const res = await fetch(`${API_BASE}/all-materials`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-  });
-  const data = await res.json();
-  console.log(data);
+        if(!name || !price) return alert("Please fill all fields");
 
-  const tbody = document.getElementById("materialsBody");
-  tbody.innerHTML = "";
+        const res = await fetch(`${API_BASE}/create-product`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ name, unit_price: parseFloat(price), materials })
+        });
+        if(res.ok) { closeModal('modal-add-product'); loadProducts(); } else { alert("Error creating product"); }
+    }
 
-  data.forEach(m => {
-    tbody.innerHTML += `
-  <tr class="hover:bg-slate-50">
-    <td class="p-3 align-middle">${m.id}</td>
-    <td class="p-3 align-middle font-medium">${m.name}</td>
-    <td class="p-3 text-center align-middle">${m.quantity_in_stock}</td>
-    <td class="p-3 text-center align-middle">${m.supplier_name || "-"}</td>
-    <td class="p-3 align-middle">
-      <div class="flex justify-center gap-2">
-        <button class="px-2 py-1 bg-green-100 rounded" onclick="addMaterial(${m.id})">➕</button>
-        <button class="px-2 py-1 bg-yellow-100 rounded" onclick="reduceMaterial(${m.id})">➖</button>
-      </div>
-    </td>
-  </tr>
-`;
-  });
-}
+    async function submitCreateMaterial() {
+        const name = document.getElementById('add-mat-name').value;
+        const qty = document.getElementById('add-mat-qty').value;
+        const price = document.getElementById('add-mat-price').value;
+        if(!name) return alert("Please enter name");
 
-// ---------- ACTIONS ----------
-async function addStock(id) {
-  const qty = prompt("Quantity to add:");
-  await fetch(`${API_BASE}/add-product`, {
-    method: "PATCH",
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ id, quantity: parseInt(qty) })
-  });
-  loadProducts();
-}
+        const res = await fetch(`${API_BASE}/create-material`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ name, quantity_in_stock: parseFloat(qty), unit_price: parseFloat(price || 0) })
+        });
+        if(res.ok) { closeModal('modal-add-material'); loadMaterials(); } else { alert("Error creating material"); }
+    }
 
-async function reduceStock(id) {
-  const qty = prompt("Quantity to reduce:");
-  await fetch(`${API_BASE}/reduce-product`, {
-    method: "PATCH",
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ id, quantity: parseInt(qty) })
-  });
-  loadProducts();
-}
+    async function addStock(id) {
+        const qty = prompt("Add quantity:");
+        if(!qty) return;
+        await fetch(`${API_BASE}/add-product`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ id, quantity: parseInt(qty) })
+        });
+        loadProducts();
+    }
 
-async function deleteProduct(id) {
-  await fetch(`${API_BASE}/delete-product`, {
-    method: "DELETE",
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ id })
-  });
-  loadProducts();
-}
+    async function addMaterialQty(id) {
+        const qty = prompt("Add material quantity:");
+        if(!qty) return;
+        await fetch(`${API_BASE}/add-material`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ id, quantity: parseFloat(qty) })
+        });
+        loadMaterials();
+    }
 
-// ---------- MATERIAL ACTIONS ----------
-async function addMaterial(id) {
-  const qty = prompt("Quantity to add:");
-  await fetch(`${API_BASE}/add-material`, {
-    method: "PATCH",
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ id, quantity: parseFloat(qty) })
-  });
-  loadMaterials();
-}
+    async function deleteProduct(id) { if(confirm("Delete product?")) { await fetch(`${API_BASE}/delete-product`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }, body: JSON.stringify({ id }) }); loadProducts(); } }
+    async function deleteMaterial(id) { if(confirm("Delete material?")) { await fetch(`${API_BASE}/delete-material`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }, body: JSON.stringify({ id }) }); loadMaterials(); } }
 
-async function reduceMaterial(id) {
-  const qty = prompt("Quantity to reduce:");
-  await fetch(`${API_BASE}/reduce-material`, {
-    method: "PATCH",
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ id, quantity: parseFloat(qty) })
-  });
-  loadMaterials();
-}
-
-// ---------- INIT ----------
-loadProducts();
-loadMaterials();
+    loadProducts();
+    loadMaterials();
 </script>
-
 </body>
 </html>

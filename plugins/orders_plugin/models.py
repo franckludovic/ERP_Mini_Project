@@ -32,9 +32,11 @@ class Order(models.Model):
     
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    grade = models.CharField(max_length=10, null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    expected_delivery_date = models.DateField(null=True, blank=True)
     
     def recalculate_total(self):
         from django.db.models import Sum

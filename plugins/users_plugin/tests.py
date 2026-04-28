@@ -86,7 +86,7 @@ class LoginAPITest(APITestCase):
     
     def setUp(self):
         self.user = User.objects.create_user(
-    
+            username='loginuser',
             email='login@example.com',
             password='LoginPass123!'
         )
@@ -94,7 +94,7 @@ class LoginAPITest(APITestCase):
     def test_login_success(self):
         url = reverse('login')
         data = {
-            'Email': 'login@example.com',
+            'email': 'login@example.com',
             'password': 'LoginPass123!'
         }
         response = self.client.post(url, data, format='json')
@@ -105,7 +105,7 @@ class LoginAPITest(APITestCase):
     def test_login_invalid_credentials(self):
         url = reverse('login')
         data = {
-            'Email': 'login@example.com',
+            'email': 'login@example.com',
             'password': 'WrongPassword!'
         }
         response = self.client.post(url, data, format='json')
@@ -114,7 +114,7 @@ class LoginAPITest(APITestCase):
     def test_login_nonexistent_user(self):
         url = reverse('login')
         data = {
-            'Email': 'nonexistent@example.com',
+            'email': 'nonexistent@example.com',
             'password': 'Pass123!'
         }
         response = self.client.post(url, data, format='json')
@@ -219,3 +219,47 @@ class PremiumStatusTest(APITestCase):
         url = reverse('profile')
         response = self.client.get(url)
         self.assertTrue(response.data['is_premium'])
+
+
+class AdminUserCreateTest(APITestCase):
+    """Tests for Admin user creation API"""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='adminuser',
+            email='admin@example.com',
+            password='AdminPass123!',
+            role='admin'
+        )
+        self.customer = User.objects.create_user(
+            username='customeruser',
+            email='customer@example.com',
+            password='CustomerPass123!',
+            role='customer'
+        )
+
+    def test_admin_can_create_production_manager(self):
+        self.client.force_authenticate(user=self.admin)
+        url = reverse('admin-create-user')
+        data = {
+            'username': 'new_pm',
+            'email': 'pm@example.com',
+            'password': 'PMPass123!',
+            'role': 'production_manager'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        new_user = User.objects.get(username='new_pm')
+        self.assertEqual(new_user.role, 'production_manager')
+
+    def test_customer_cannot_create_user(self):
+        self.client.force_authenticate(user=self.customer)
+        url = reverse('admin-create-user')
+        data = {
+            'username': 'attempt',
+            'email': 'attempt@example.com',
+            'password': 'Pass123!',
+            'role': 'admin'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

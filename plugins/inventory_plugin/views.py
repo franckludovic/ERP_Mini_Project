@@ -11,12 +11,30 @@ from .serializers import *
 #Create a new product
 @api_view(['POST'])
 def createProduct(request):
-    serializer = ProductSerializer(data=request.data)
+    data = request.data
+    materials_data = data.pop('materials', [])
+    
+    serializer = ProductSerializer(data=data)
     if serializer.is_valid():
-        serializer.save() #This will create new item in database
+        product = serializer.save()
+        
+        # Link materials
+        for mat_item in materials_data:
+            material_id = mat_item.get('id')
+            qty_req = mat_item.get('quantity', 1.0)
+            if material_id:
+                ProductMaterial.objects.create(
+                    product=product,
+                    material_id=material_id,
+                    quantity_required=qty_req
+                )
+        
+        return Response({
+            "Message": "Product successfully created with materials",
+            "id": product.id
+        }, status=status.HTTP_201_CREATED)
     else:
-        return Response({"Error": "Invalid Payload"}, status=status.HTTP_400_BAD_REQUEST)
-    return Response({"Message": "Product successfully created"})
+        return Response({"Error": "Invalid Payload", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 #Retrieve all the products
 @api_view(['GET'])
@@ -252,3 +270,15 @@ def deleteSupplier(request):
         except Supplier.DoesNotExist:
             return Response({"Error": "Supplier with this id not found"}, status=status.HTTP_404_NOT_FOUND)
     return Response({"Error": "Invalid Payload"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def inventory_dashboard_view(request):
+    from plugins.users_plugin.views import _require_session_user, _get_user_context
+    from django.shortcuts import redirect
+    admin_user = _require_session_user(request)
+    if not admin_user or admin_user.role != 'admin':
+        return redirect('login-template')
+    
+    return render(request, 'inventory_dashboard.html', {
+        'admin': _get_user_context(admin_user),
+    })

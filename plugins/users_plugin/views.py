@@ -415,7 +415,7 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import render, redirect
 from .serializers import (
     UserSerializer, RegisterSerializer, LoginSerializer,
-    ProfileSerializer, UserUpdateSerializer
+    ProfileSerializer, UserUpdateSerializer, AdminUserCreateSerializer
 )
 
 User = get_user_model()
@@ -591,6 +591,13 @@ class UpgradeToPremiumView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
+class AdminUserCreateView(generics.CreateAPIView):
+    """API view for Admins to create users with specific roles"""
+    queryset = User.objects.all()
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminUserCreateSerializer
+
+
 # ==================== Template Views ====================
 
 def _get_user_context(user):
@@ -603,6 +610,8 @@ def _get_user_context(user):
         'transaction_count': user.transaction_count,
         'total_spent': user.total_spent,
         'is_premium': user.is_premium(),
+        'is_banned': user.is_banned,
+        'ban_until': user.ban_until.isoformat() if user.ban_until else None,
     }
 
 
@@ -645,14 +654,25 @@ def login_view(request):
                 'active_tab': 'signin'
             })
 
+        from django.contrib.auth import login
+        login(request, user)
         request.session['user_id'] = user.id
         request.session['username'] = user.username
-        return redirect('customer-dashboard')
+        
+        # Role-based redirection
+        if user.role == 'admin':
+            return redirect('order_dashboard')
+        elif user.role == 'production_manager':
+            return redirect('mrp_dashboard')
+        else:
+            return redirect('customer_dashboard')
 
     return render(request, 'login.html')
 
 
 def logout_view(request):
+    from django.contrib.auth import logout
+    logout(request)
     request.session.flush()
     return redirect('login-template')
 
@@ -663,7 +683,8 @@ def register_view(request):
         email = request.POST.get('email', '').lower()
         password = request.POST.get('password')
         password2 = request.POST.get('password2')
-        role = request.POST.get('role', 'customer')
+        # Strict default to 'customer' for public registration
+        role = 'customer'
 
         if password != password2:
             return render(request, 'login.html', {
@@ -728,3 +749,47 @@ def profile_settings_view(request):
         return redirect('login-template')
 
     return render(request, 'profile-settings.html', {'user': _get_user_context(user)})
+
+
+def user_management_template(request):
+    """Render the User Management HTML page for Admins"""
+    admin_user = _require_session_user(request)
+    if not admin_user or admin_user.role != 'admin':
+        return redirect('login-template')
+
+    users = User.objects.all().order_by('-date_joined')
+    user_data = [_get_user_context(u) for u in users]
+
+    return render(request, 'user-management.html', {
+        'admin': _get_user_context(admin_user),
+        'users': user_data,
+        'role_choices': User.ROLE_CHOICES,
+        'grade_choices': User.GRADE_CHOICES,
+    })
+
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework.decorators import api_view
+
+@api_view(['POST'])
+def ban_user(request, user_id):
+    user = User.objects.get(pk=user_id)
+    duration_days = int(request.data.get('duration', 0))
+    user.is_banned = True
+    user.ban_until = timezone.now() + timedelta(days=duration_days)
+    user.save()
+    return Response({'success': True, 'message': f'User banned until {user.ban_until}'})
+
+@api_view(['POST'])
+def unban_user(request, user_id):
+    user = User.objects.get(pk=user_id)
+    user.is_banned = False
+    user.ban_until = None
+    user.save()
+    return Response({'success': True, 'message': 'User unbanned'})
+
+@api_view(['DELETE', 'POST'])
+def delete_user(request, user_id):
+    user = User.objects.get(pk=user_id)
+    user.delete()
+    return Response({'success': True, 'message': 'User deleted'})

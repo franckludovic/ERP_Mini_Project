@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Nexus ERP - User Management</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #fcf8ff;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface">
+
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_rgba(15,23,42,0.02)] flex flex-col p-4 gap-2 z-50">
+    <div class="mb-8 px-4">
+        <h1 class="text-xl font-black text-indigo-600">Nexus ERP</h1>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Enterprise Suite</p>
+    </div>
+    <nav class="flex-1 flex flex-col gap-1">
+        <a class="flex items-center gap-3 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-['Inter'] text-sm font-semibold" href="{% url 'user-management' %}">
+            <span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+            <span>User Management</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="{% url 'order_dashboard' %}">
+            <span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+            <span>Orders</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="{% url 'inventory_dashboard' %}">
+            <span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+            <span>Inventory</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="#">
+            <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+            <span>Notifications</span>
+        </a>
+    </nav>
+    <div class="mt-auto p-4 border-t">
+        <a href="{% url 'logout' %}" class="flex items-center gap-3 text-red-600 hover:text-red-700 text-sm font-medium">
+            <span class="material-symbols-outlined">logout</span>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
+
+<main class="ml-64 min-h-screen">
+    <header class="flex justify-between items-center h-16 w-full px-8 sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 shadow-sm">
+        <div class="flex items-center gap-4">
+            <h2 class="text-lg font-bold tracking-tight text-slate-900">User Management</h2>
+            <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Admin Control</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="openCreateModal()" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 transition-all">
+                <span class="material-symbols-outlined text-sm">person_add</span>
+                Create User
+            </button>
+        </div>
+    </header>
+
+    <div class="p-8 max-w-7xl mx-auto space-y-8">
+        <div class="bg-white rounded-xl shadow-[0px_1px_3px_rgba(15,23,42,0.05),0px_10px_15px_-3px_rgba(15,23,42,0.03)] border border-slate-100 overflow-hidden">
+            <div class="p-6 border-b border-slate-50">
+                <h3 class="text-lg font-bold text-slate-900">System Users</h3>
+                <p class="text-sm text-slate-500">Manage accounts, roles, and restrict access for all Nexus ERP users.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50">
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Grade</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Stats</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        {% for u in users %}
+                        <tr class="group hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700">
+                                        {{ u.username|make_list|first|upper }}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold text-slate-900">{{ u.username }}</span>
+                                        {% if u.is_banned %}
+                                        <span class="text-[9px] text-red-500 font-black uppercase">Banned until {{ u.ban_until|slice:":10" }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ u.email }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold 
+                                    {% if u.role == 'admin' %}bg-purple-100 text-purple-700
+                                    {% elif u.role == 'production_manager' %}bg-blue-100 text-blue-700
+                                    {% else %}bg-green-100 text-green-700{% endif %}">
+                                    {{ u.role|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {% if u.role == 'customer' %}
+                                    {{ u.grade }}
+                                {% else %}
+                                    <span class="text-slate-300">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">Orders: {{ u.transaction_count }}</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">Spent: {{ u.total_spent|floatformat:0 }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2">
+                                    {% if u.id != admin.id %}
+                                        {% if u.is_banned %}
+                                        <button onclick="unbanUser({{ u.id }})" class="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase hover:bg-green-100 transition-all">Unban</button>
+                                        {% else %}
+                                        <button onclick="openBanModal({{ u.id }}, '{{ u.username }}')" class="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-black uppercase hover:bg-amber-100 transition-all">Ban</button>
+                                        {% endif %}
+                                        <button onclick="deleteUser({{ u.id }})" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete User">
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-[10px] text-slate-300 font-bold uppercase">Current Admin</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal: Create User -->
+<div id="createUserModal" class="modal">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative">
+        <button onclick="closeModal('createUserModal')" class="absolute right-6 top-6 text-slate-400 hover:text-slate-600">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <h2 class="text-2xl font-bold text-slate-900 mb-2">Create New User</h2>
+        <p class="text-sm text-slate-500 mb-6">Set up a new system account.</p>
+        
+        <form id="createUserForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label>
+                <input type="text" name="username" required class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                <input type="email" name="email" required class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
+                <input type="password" name="password" required class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Role</label>
+                    <select name="role" class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+                        {% for code, label in role_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="gradeContainer">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grade</label>
+                    <select name="grade" class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
+                        {% for code, label in grade_choices %}
+                        <option value="{{ code }}" {% if code == '3rd' %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all mt-4">Create Account</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Ban User -->
+<div id="banUserModal" class="modal">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 relative">
+        <button onclick="closeModal('banUserModal')" class="absolute right-6 top-6 text-slate-400 hover:text-slate-600">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mb-4">
+            <span class="material-symbols-outlined text-amber-600">gavel</span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 mb-1">Ban <span id="banTargetName">User</span></h2>
+        <p class="text-sm text-slate-500 mb-6">Restricts the user from placing new orders for the specified duration.</p>
+        
+        <input type="hidden" id="banTargetId">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Ban Duration (Days)</label>
+                <div class="flex gap-2">
+                    <button onclick="setBanDuration(7)" class="flex-1 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold hover:bg-slate-100">7D</button>
+                    <button onclick="setBanDuration(30)" class="flex-1 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold hover:bg-slate-100">30D</button>
+                    <button onclick="setBanDuration(365)" class="flex-1 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold hover:bg-slate-100">1Y</button>
+                </div>
+                <input type="number" id="banDurationInput" placeholder="Enter days" class="w-full rounded-lg border-slate-200 text-sm focus:ring-amber-500 mt-3">
+            </div>
+            <button onclick="submitBan()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-all">Apply Restriction</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openCreateModal() { document.getElementById('createUserModal').classList.add('active'); }
+    function closeModal(id) { document.getElementById(id || 'createUserModal').classList.remove('active'); }
+
+    function openBanModal(userId, username) {
+        document.getElementById('banTargetId').value = userId;
+        document.getElementById('banTargetName').innerText = username;
+        document.getElementById('banUserModal').classList.add('active');
+    }
+
+    function setBanDuration(days) {
+        document.getElementById('banDurationInput').value = days;
+    }
+
+    async function submitBan() {
+        const userId = document.getElementById('banTargetId').value;
+        const duration = document.getElementById('banDurationInput').value;
+        if(!duration) return alert("Please specify duration");
+
+        const res = await fetch(`/api/users/${userId}/ban/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ duration: parseInt(duration) })
+        });
+        if(res.ok) window.location.reload();
+        else alert("Error banning user");
+    }
+
+    async function unbanUser(userId) {
+        if(!confirm("Unban this user?")) return;
+        const res = await fetch(`/api/users/${userId}/unban/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        if(res.ok) window.location.reload();
+    }
+
+    async function deleteUser(userId) {
+        if(!confirm("Are you sure you want to PERMANENTLY delete this user? This cannot be undone.")) return;
+        const res = await fetch(`/api/users/${userId}/delete/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
+        });
+        if(res.ok) window.location.reload();
+        else alert("Error deleting user");
+    }
+
+    // Existing Create User Logic
+    const roleSelect = document.querySelector('select[name="role"]');
+    const gradeContainer = document.getElementById('gradeContainer');
+    function toggleGradeField() {
+        if (roleSelect.value === 'customer') {
+            gradeContainer.style.opacity = '1';
+            gradeContainer.style.pointerEvents = 'auto';
+        } else {
+            gradeContainer.style.opacity = '0.3';
+            gradeContainer.style.pointerEvents = 'none';
+        }
+    }
+    roleSelect.addEventListener('change', toggleGradeField);
+    toggleGradeField();
+
+    document.getElementById('createUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        fetch('{% url "admin-create-user" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(data)
+        }).then(response => {
+            if(response.ok) window.location.reload();
+            else response.json().then(err => alert('Error: ' + JSON.stringify(err)));
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -143,3 +143,21 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         if User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists():
             raise serializers.ValidationError("This email is already in use.")
         return value.lower()
+
+
+class AdminUserCreateSerializer(serializers.ModelSerializer):
+    """Serializer for Admin to create users with specific roles"""
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+
+    class Meta:
+        model = User
+        fields = [
+            'username', 'email', 'password', 'first_name',
+            'last_name', 'role', 'grade'
+        ]
+
+    def create(self, validated_data):
+        role = validated_data.get('role', 'customer')
+        if role != 'customer':
+            validated_data['grade'] = None
+        return User.objects.create_user(**validated_data)
