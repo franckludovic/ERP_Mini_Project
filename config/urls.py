@@ -16,8 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.views.generic import TemplateView
 
 urlpatterns = [
+    path('mrp_dashboard/',    TemplateView.as_view(template_name='mrp_dashboard.html'), name='mrp_dashboard'),
+    path('api/token/',        TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('admin/',            admin.site.urls),
     path('api/users/',        include('plugins.users_plugin.urls')),
     path('api/orders/',       include('plugins.orders_plugin.urls')),

@@ -12,6 +12,7 @@ class Production(models.Model):
         ('low', 'Low'),
         ('normal', 'Normal'),
         ('high', 'High'),
+        ('urgent', 'Urgent'),
     )
     DELIVERY_STATUS_CHOICES = (
         ('pending', 'Pending'),

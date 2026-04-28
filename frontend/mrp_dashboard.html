@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>MRP &amp; Production - Nexus ERP</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcf8ff;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .sidebar-active {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: #4f46e5;
+            border-radius: 0.5rem;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(228, 225, 238, 0.5);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-200">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-black text-indigo-600 mb-1">Nexus ERP</h1>
+                <p class="text-sm font-medium text-slate-500 uppercase tracking-widest">Production Module</p>
+            </div>
+            <div id="error-msg" class="text-red-600 text-sm mb-4 text-center font-medium"></div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 ml-1 uppercase">Username</label>
+                    <input type="text" id="username"
+                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                        required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1 ml-1 uppercase">Password</label>
+                    <input type="password" id="password"
+                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                        required>
+                </div>
+                <button type="submit"
+                    class="w-full py-3 mt-2 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all">
+                    Access Dashboard
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboard-screen" class="hidden flex h-screen overflow-hidden">
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-y-auto bg-slate-50/50">
+            <!-- TopAppBar -->
+            <header
+                class="flex justify-between items-center h-16 px-8 sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-30">
+                <h2 class="text-lg font-bold tracking-tight text-slate-900">MRP &amp; Production</h2>
+                <div class="flex items-center gap-4">
+                    <button onclick="triggerFetchOrders()"
+                        class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-indigo-700 shadow-sm active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-[18px]">sync</span>
+                        Fetch Customer Orders
+                    </button>
+                    <button onclick="fetchProductions()"
+                        class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
+                        <span class="material-symbols-outlined">refresh</span>
+                    </button>
+                    <div class="w-px h-6 bg-slate-200 mx-1"></div>
+                    <button onclick="logout()"
+                        class="flex items-center gap-2 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all font-semibold text-sm">
+                        <span class="material-symbols-outlined text-[18px]">logout</span>
+                        Logout
+                    </button>
+                </div>
+            </header>
+
+            <div class="p-8 space-y-8 max-w-7xl mx-auto w-full">
+
+                <!-- Top Metrics & Controls -->
+                <div class="grid grid-cols-12 gap-6">
+                    <!-- Material Health Summary -->
+                    <div class="col-span-12 bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900">Material Health Overview</h3>
+                                <p class="text-sm text-slate-500">Stock availability for all required BOM materials</p>
+                            </div>
+                            <button onclick="openBomModal()"
+                                class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
+                                View Bill of Materials
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+                            <div
+                                class="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col justify-center">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-bold text-indigo-700 uppercase tracking-wide">Total
+                                        Runs</span>
+                                    <span class="material-symbols-outlined text-indigo-500"
+                                        style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+                                </div>
+                                <div class="text-3xl font-black text-indigo-900" id="stat-total-runs">0</div>
+                            </div>
+                            <div
+                                class="p-4 bg-orange-50/50 rounded-xl border border-orange-100 flex flex-col justify-center">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span
+                                        class="text-xs font-bold text-orange-700 uppercase tracking-wide">Pending</span>
+                                    <span class="material-symbols-outlined text-orange-500">pending_actions</span>
+                                </div>
+                                <div class="text-3xl font-black text-orange-900" id="stat-pending">0</div>
+                            </div>
+                            <div
+                                class="p-4 bg-green-50/50 rounded-xl border border-green-100 flex flex-col justify-center">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span
+                                        class="text-xs font-bold text-green-700 uppercase tracking-wide">Completed</span>
+                                    <span class="material-symbols-outlined text-green-500"
+                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                </div>
+                                <div class="text-3xl font-black text-green-900" id="stat-completed">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Table Area -->
+                <div class="grid grid-cols-12 gap-6">
+                    <div class="col-span-12">
+                        <div class="flex justify-between items-center mb-4 px-1">
+                            <h4 class="text-lg font-bold text-slate-900">Active Production Orders</h4>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200">
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Prod ID</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Order Ref</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Priority</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Status</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Delivery</th>
+                                        <th
+                                            class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                                            Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="production-tbody" class="divide-y divide-slate-100">
+                                    <!-- Injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOM / Materials Modal -->
+    <div id="bom-modal"
+        class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl border border-slate-200 flex flex-col max-h-[80vh]">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-900" id="modal-title">Bill of Materials</h3>
+                <button onclick="closeModal()"
+                    class="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-1 transition-colors">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="divide-y divide-slate-50" id="modal-content">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let jwtToken = localStorage.getItem('access_token');
+        const loginScreen = document.getElementById('login-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const errorMsg = document.getElementById('error-msg');
+        let currentProductions = [];
+
+        if (jwtToken) {
+            showDashboard();
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/token/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    jwtToken = data.access;
+                    localStorage.setItem('access_token', jwtToken);
+                    showDashboard();
+                } else {
+                    errorMsg.innerText = data.detail || 'Invalid credentials';
+                }
+            } catch (err) {
+                errorMsg.innerText = 'Network error connecting to backend.';
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            jwtToken = null;
+            dashboardScreen.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+        }
+
+        function showDashboard() {
+            loginScreen.classList.add('hidden');
+            dashboardScreen.classList.remove('hidden');
+            fetchProductions();
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtToken}`,
+                ...options.headers
+            };
+            const res = await fetch(url, { ...options, headers });
+            if (res.status === 401) { logout(); return null; }
+            return res;
+        }
+
+        async function fetchProductions() {
+            const res = await fetchWithAuth('/api/mrp/production/');
+            if (!res) return;
+            const data = await res.json();
+            currentProductions = data;
+
+            const tbody = document.getElementById('production-tbody');
+            
+            tbody.innerHTML = '';
+
+            let counts = { total: data.length, pending: 0, completed: 0 };
+
+            data.forEach(prod => {
+                if (prod.status === 'pending') counts.pending++;
+                if (prod.status === 'completed') counts.completed++;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-colors group';
+
+                let priorityHtml = '';
+                if (prod.status === 'pending') {
+                    priorityHtml = `
+                    <select onchange="updatePriority(${prod.id}, this.value)" class="text-xs font-bold border-slate-200 rounded px-1 py-1 outline-none bg-slate-50">
+                        <option value="low" ${prod.priority_level === 'low' ? 'selected' : ''}>Low</option>
+                        <option value="normal" ${prod.priority_level === 'normal' ? 'selected' : ''}>Normal</option>
+                        <option value="high" ${prod.priority_level === 'high' ? 'selected' : ''}>High</option>
+                        <option value="urgent" ${prod.priority_level === 'urgent' ? 'selected' : ''}>Urgent</option>
+                    </select>`;
+                } else {
+                    if (prod.priority_level === 'urgent') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping"></span>Urgent</span>`;
+                    else if (prod.priority_level === 'high') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600 border border-orange-100">High</span>`;
+                    else if (prod.priority_level === 'normal') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">Normal</span>`;
+                    else priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">Low</span>`;
+                }
+
+                let deliveryHtml = `
+                <select onchange="updateDelivery(${prod.id}, this.value)" class="text-xs font-semibold uppercase text-slate-500 border border-slate-200 rounded px-1 py-1 outline-none bg-white">
+                    <option value="pending" ${prod.delivery_status === 'pending' ? 'selected' : ''}>PENDING</option>
+                    <option value="shipped" ${prod.delivery_status === 'shipped' ? 'selected' : ''}>SHIPPED</option>
+                    <option value="delivered" ${prod.delivery_status === 'delivered' ? 'selected' : ''}>DELIVERED</option>
+                </select>`;
+
+                // Status Badge Logic
+                let statusHtml = '';
+                if (prod.status === 'pending') statusHtml = `<span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">Pending</span>`;
+                else if (prod.status === 'in_progress') statusHtml = `<span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">In Progress</span>`;
+                else statusHtml = `<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">Completed</span>`;
+
+                // Action Buttons
+                let actionsHtml = `<div class="flex justify-end gap-2 opacity-100">
+                    <button onclick="viewMaterials(${prod.id})" class="text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded shadow-sm hover:bg-slate-50">Materials</button>`;
+
+                if (prod.status === 'pending') {
+                    actionsHtml += `<button onclick="requestMaterials(${prod.id})" class="text-xs font-bold bg-orange-100 text-orange-700 px-3 py-1.5 rounded shadow-sm hover:bg-orange-200 border border-orange-200">Request Stock</button>`;
+                    actionsHtml += `<button onclick="startProduction(${prod.id})" class="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-indigo-700">Start</button>`;
+                } else if (prod.status === 'in_progress') {
+                    actionsHtml += `<button onclick="completeProduction(${prod.id})" class="text-xs font-bold bg-green-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-green-700">Complete</button>`;
+                }
+                actionsHtml += `</div>`;
+
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-bold text-slate-900">#${prod.id}</td>
+                    <td class="px-6 py-4 font-medium text-slate-600">Order #${prod.order}</td>
+                    <td class="px-6 py-4">${priorityHtml}</td>
+                    <td class="px-6 py-4">${statusHtml}</td>
+                    <td class="px-6 py-4">${deliveryHtml}</td>
+                    <td class="px-6 py-4 text-right">${actionsHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('stat-total-runs').innerText = counts.total;
+            document.getElementById('stat-pending').innerText = counts.pending;
+            document.getElementById('stat-completed').innerText = counts.completed;
+        }
+        async function updatePriority(id, priority) {
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/`, {
+                method: 'PATCH',
+                body: JSON.stringify({ priority_level: priority })
+            });
+            if (res && res.ok) fetchProductions();
+        }
+
+        async function updateDelivery(id, status) {
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/update_delivery/`, {
+                method: 'POST',
+                body: JSON.stringify({ delivery_status: status })
+            });
+            if (res && res.ok) fetchProductions();
+        }
+        async function triggerFetchOrders() {
+            const btn = event.currentTarget;
+            btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">sync</span> Fetching...`;
+            const res = await fetchWithAuth('/api/mrp/production/fetch_orders/', { method: 'POST' });
+            if (res && res.ok) {
+                const data = await res.json();
+                fetchProductions();
+                // small toast effect could go here
+            }
+            btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">sync</span> Fetch Customer Orders`;
+        }
+
+        async function startProduction(id) {
+            if (!confirm('Start this production run? This will deduct required materials from inventory.')) return;
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/start/`, { method: 'POST' });
+            if (res && res.ok) {
+                fetchProductions();
+            } else if (res) {
+                const data = await res.json();
+                alert('Error: ' + (data.error || 'Could not start production due to insufficient stock.'));
+            }
+        }
+
+        async function requestMaterials(id) {
+            if (!confirm('Send a request to the warehouse to restock missing materials for this order?')) return;
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/request_materials/`, { method: 'POST' });
+            if (res && res.ok) {
+                alert('Warehouse has been notified of the material shortage!');
+            } else if (res) {
+                const data = await res.json();
+                alert('Notice: ' + (data.error || data.status || 'Could not process request.'));
+            }
+        }
+
+        async function completeProduction(id) {
+            if (!confirm('Mark production as completed? This will add the finished product to inventory.')) return;
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/complete/`, { method: 'POST' });
+            if (res && res.ok) fetchProductions();
+        }
+
+        async function viewMaterials(id) {
+            document.getElementById('modal-title').innerText = `Required Materials (Prod #${id})`;
+            const content = document.getElementById('modal-content');
+            content.innerHTML = '<div class="text-center p-4 text-slate-500">Loading...</div>';
+            document.getElementById('bom-modal').classList.remove('hidden');
+
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/required_materials/`);
+            if (!res) { closeModal(); return; }
+            const data = await res.json();
+
+            content.innerHTML = '';
+            if (data.length === 0) {
+                content.innerHTML = '<div class="p-4 text-sm text-slate-500">No materials defined for this order.</div>';
+                return;
+            }
+
+            data.forEach(m => {
+                const stockBadge = m.is_sufficient
+                    ? `<span class="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded uppercase tracking-wide">In Stock</span>`
+                    : `<span class="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded uppercase tracking-wide">Shortage</span>`;
+
+                content.innerHTML += `
+                <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-indigo-400">category</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-sm">${m.material_name}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Need: ${m.quantity_needed} | Have: ${m.in_stock}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">${stockBadge}</div>
+                </div>`;
+            });
+        }
+
+        async function openBomModal() {
+            document.getElementById('modal-title').innerText = `Global Bill of Materials`;
+            const content = document.getElementById('modal-content');
+            content.innerHTML = '<div class="text-center p-4 text-slate-500">Loading BOMs...</div>';
+            document.getElementById('bom-modal').classList.remove('hidden');
+
+            const res = await fetchWithAuth('/api/mrp/bom/');
+            if (!res) { closeModal(); return; }
+            const data = await res.json();
+
+            content.innerHTML = '';
+            if (data.length === 0) {
+                content.innerHTML = '<div class="p-4 text-sm text-slate-500">No BOMs found in database.</div>';
+                return;
+            }
+
+            data.forEach(bom => {
+                content.innerHTML += `
+                <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <div class="flex flex-col">
+                        <p class="font-bold text-slate-900 text-sm">Product ID: #${bom.product}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Requires Material #${bom.material}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-indigo-700 text-sm bg-indigo-50 px-3 py-1 rounded-lg">${bom.quantity_required} units</p>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('bom-modal').classList.add('hidden');
+        }
+
+        // We don't have an endpoint specifically for updating priority, but ModelViewSet provides standard PUT/PATCH.
+        // We'll use PATCH to update just the priority.
+        async function updatePriority(e) {
+            e.preventDefault();
+            const prodId = document.getElementById('priority-order-select').value;
+            const priority = document.getElementById('priority-level-select').value;
+
+            if (!prodId) { alert('Please select a pending order.'); return; }
+
+            const res = await fetchWithAuth(`/api/mrp/production/${prodId}/`, {
+                method: 'PATCH',
+                body: JSON.stringify({ priority_level: priority })
+            });
+
+            if (res && res.ok) {
+                fetchProductions();
+                alert(`Priority updated to ${priority} for Production #${prodId}`);
+            } else {
+                alert('Failed to update priority.');
+            }
+        }
+    </script>
+</body>
+
+</html>
