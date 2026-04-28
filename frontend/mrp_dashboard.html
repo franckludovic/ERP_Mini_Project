@@ -110,7 +110,7 @@
                                 View Bill of Materials
                             </button>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
                             <div
                                 class="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col justify-center">
                                 <div class="flex items-center justify-between mb-2">
@@ -129,6 +129,15 @@
                                     <span class="material-symbols-outlined text-orange-500">pending_actions</span>
                                 </div>
                                 <div class="text-3xl font-black text-orange-900" id="stat-pending">0</div>
+                            </div>
+                            <div
+                                class="p-4 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col justify-center">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-bold text-blue-700 uppercase tracking-wide">In
+                                        Progress</span>
+                                    <span class="material-symbols-outlined text-blue-500">manufacturing</span>
+                                </div>
+                                <div class="text-3xl font-black text-blue-900" id="stat-in-progress">0</div>
                             </div>
                             <div
                                 class="p-4 bg-green-50/50 rounded-xl border border-green-100 flex flex-col justify-center">
@@ -163,7 +172,9 @@
                                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                                             Status</th>
                                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Delivery</th>
+                                            Delivery Status</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            Expected Delivery</th>
                                         <th
                                             class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
                                             Actions</th>
@@ -174,6 +185,51 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Materials Ledger Section -->
+                <div>
+                    <div class="flex justify-between items-center mb-4 px-1">
+                        <div>
+                            <h4 class="text-lg font-bold text-slate-900">Materials Ledger</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">Aggregated stock vs. demand across all active
+                                production orders</p>
+                        </div>
+                        <button onclick="loadMaterialsLedger()" id="ledger-btn"
+                            class="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg transition-colors">
+                            <span class="material-symbols-outlined text-[18px]">table_chart</span>
+                            Load Ledger
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div id="ledger-empty" class="p-12 flex flex-col items-center justify-center text-slate-400">
+                            <span class="material-symbols-outlined text-5xl mb-3"
+                                style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+                            <p class="text-sm font-semibold">Material ledger not loaded.</p>
+                            <p class="text-xs mt-1">Click <strong class="text-indigo-600">Load Ledger</strong> above to
+                                aggregate material requirements.</p>
+                        </div>
+                        <table id="ledger-table" class="hidden w-full text-left border-collapse whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200">
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Material</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Total Needed</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">In
+                                        Stock</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Surplus / Deficit</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Linked Orders</th>
+                                    <th
+                                        class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                                        Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledger-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -266,34 +322,37 @@
             currentProductions = data;
 
             const tbody = document.getElementById('production-tbody');
-            
+
             tbody.innerHTML = '';
 
-            let counts = { total: data.length, pending: 0, completed: 0 };
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-16 text-center">
+                    <span class="material-symbols-outlined block text-5xl text-slate-300 mb-2">inbox</span>
+                    <p class="text-sm font-semibold text-slate-400">No production orders yet.</p>
+                    <p class="text-xs text-slate-400 mt-1">Click <strong>"Fetch Customer Orders"</strong> in the top bar to load validated orders.</p>
+                </td></tr>`;
+                ['stat-total-runs', 'stat-pending', 'stat-in-progress', 'stat-completed'].forEach(id => document.getElementById(id).innerText = 0);
+                return;
+            }
+
+            let counts = { total: data.length, pending: 0, completed: 0, in_progress: 0 };
 
             data.forEach(prod => {
                 if (prod.status === 'pending') counts.pending++;
                 if (prod.status === 'completed') counts.completed++;
+                if (prod.status === 'in_progress') counts.in_progress++;
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/80 transition-colors group';
 
+                // Priority pill — always read-only (set by admin)
                 let priorityHtml = '';
-                if (prod.status === 'pending') {
-                    priorityHtml = `
-                    <select onchange="updatePriority(${prod.id}, this.value)" class="text-xs font-bold border-slate-200 rounded px-1 py-1 outline-none bg-slate-50">
-                        <option value="low" ${prod.priority_level === 'low' ? 'selected' : ''}>Low</option>
-                        <option value="normal" ${prod.priority_level === 'normal' ? 'selected' : ''}>Normal</option>
-                        <option value="high" ${prod.priority_level === 'high' ? 'selected' : ''}>High</option>
-                        <option value="urgent" ${prod.priority_level === 'urgent' ? 'selected' : ''}>Urgent</option>
-                    </select>`;
-                } else {
-                    if (prod.priority_level === 'urgent') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping"></span>Urgent</span>`;
-                    else if (prod.priority_level === 'high') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600 border border-orange-100">High</span>`;
-                    else if (prod.priority_level === 'normal') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">Normal</span>`;
-                    else priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">Low</span>`;
-                }
+                if (prod.priority_level === 'urgent') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping"></span>Urgent</span>`;
+                else if (prod.priority_level === 'high') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600 border border-orange-100">High</span>`;
+                else if (prod.priority_level === 'normal') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">Normal</span>`;
+                else priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">Low</span>`;
 
+                // Delivery status dropdown
                 let deliveryHtml = `
                 <select onchange="updateDelivery(${prod.id}, this.value)" class="text-xs font-semibold uppercase text-slate-500 border border-slate-200 rounded px-1 py-1 outline-none bg-white">
                     <option value="pending" ${prod.delivery_status === 'pending' ? 'selected' : ''}>PENDING</option>
@@ -301,21 +360,34 @@
                     <option value="delivered" ${prod.delivery_status === 'delivered' ? 'selected' : ''}>DELIVERED</option>
                 </select>`;
 
-                // Status Badge Logic
+                // Expected delivery date
+                const expectedDate = prod.expected_delivery_date
+                    ? new Date(prod.expected_delivery_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : '<span class="text-slate-400 text-xs">—</span>';
+
+                // Status Badge
                 let statusHtml = '';
                 if (prod.status === 'pending') statusHtml = `<span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">Pending</span>`;
                 else if (prod.status === 'in_progress') statusHtml = `<span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">In Progress</span>`;
                 else statusHtml = `<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">Completed</span>`;
 
+                const isUrgent = prod.priority_level === 'urgent';
+
                 // Action Buttons
-                let actionsHtml = `<div class="flex justify-end gap-2 opacity-100">
+                let actionsHtml = `<div class="flex justify-end gap-2">
                     <button onclick="viewMaterials(${prod.id})" class="text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded shadow-sm hover:bg-slate-50">Materials</button>`;
 
                 if (prod.status === 'pending') {
                     actionsHtml += `<button onclick="requestMaterials(${prod.id})" class="text-xs font-bold bg-orange-100 text-orange-700 px-3 py-1.5 rounded shadow-sm hover:bg-orange-200 border border-orange-200">Request Stock</button>`;
-                    actionsHtml += `<button onclick="startProduction(${prod.id})" class="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-indigo-700">Start</button>`;
+                    if (isUrgent) {
+                        // Urgent: always startable — bypass material check
+                        actionsHtml += `<button onclick="startProduction(${prod.id}, true)" class="text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-red-700" title="Urgent: starts immediately regardless of stock">⚡ Start Urgent</button>`;
+                    } else {
+                        actionsHtml += `<button onclick="startProduction(${prod.id}, false)" class="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-indigo-700">Start</button>`;
+                    }
                 } else if (prod.status === 'in_progress') {
-                    actionsHtml += `<button onclick="completeProduction(${prod.id})" class="text-xs font-bold bg-green-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-green-700">Complete</button>`;
+                    // Complete always goes through completeProduction() which checks materials first
+                    actionsHtml += `<button onclick="completeProduction(${prod.id})" class="text-xs font-bold bg-green-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-green-700" title="Will verify all materials are in stock before completing">Complete</button>`;
                 }
                 actionsHtml += `</div>`;
 
@@ -325,6 +397,7 @@
                     <td class="px-6 py-4">${priorityHtml}</td>
                     <td class="px-6 py-4">${statusHtml}</td>
                     <td class="px-6 py-4">${deliveryHtml}</td>
+                    <td class="px-6 py-4 text-sm font-medium text-slate-700">${expectedDate}</td>
                     <td class="px-6 py-4 text-right">${actionsHtml}</td>
                 `;
                 tbody.appendChild(tr);
@@ -332,6 +405,7 @@
 
             document.getElementById('stat-total-runs').innerText = counts.total;
             document.getElementById('stat-pending').innerText = counts.pending;
+            document.getElementById('stat-in-progress').innerText = counts.in_progress;
             document.getElementById('stat-completed').innerText = counts.completed;
         }
         async function updatePriority(id, priority) {
@@ -361,14 +435,23 @@
             btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">sync</span> Fetch Customer Orders`;
         }
 
-        async function startProduction(id) {
-            if (!confirm('Start this production run? This will deduct required materials from inventory.')) return;
+        async function startProduction(id, isUrgent) {
+            if (isUrgent) {
+                if (!confirm('⚡ URGENT ORDER: This will start production immediately, bypassing material checks.\nA warehouse restock request should already be in progress. Continue?')) return;
+            } else {
+                if (!confirm('Start this production run? Materials will be checked and deducted from inventory.')) return;
+            }
             const res = await fetchWithAuth(`/api/mrp/production/${id}/start/`, { method: 'POST' });
             if (res && res.ok) {
                 fetchProductions();
             } else if (res) {
                 const data = await res.json();
-                alert('Error: ' + (data.error || 'Could not start production due to insufficient stock.'));
+                if (isUrgent) {
+                    // For urgent, a material shortage error from backend may still block — surface it clearly
+                    alert('Backend error: ' + (data.error || 'Could not start. Check backend urgent-bypass logic.'));
+                } else {
+                    alert('Cannot start: ' + (data.error || 'Insufficient materials. Request stock first.'));
+                }
             }
         }
 
@@ -384,9 +467,25 @@
         }
 
         async function completeProduction(id) {
-            if (!confirm('Mark production as completed? This will add the finished product to inventory.')) return;
+            // Always check materials before completing — regardless of urgency
+            const matRes = await fetchWithAuth(`/api/mrp/production/${id}/required_materials/`);
+            if (!matRes) return;
+            const materials = await matRes.json();
+
+            const missing = materials.filter(m => !m.is_sufficient);
+            if (missing.length > 0) {
+                const list = missing.map(m => `  • ${m.material_name}: need ${m.quantity_needed}, have ${m.in_stock}`).join('\n');
+                alert(`❌ Cannot complete production — the following materials are still insufficient:\n\n${list}\n\nRequest warehouse restock before completing.`);
+                return;
+            }
+
+            if (!confirm('All materials are available. Mark production as completed?\nThis will add the finished product to inventory.')) return;
             const res = await fetchWithAuth(`/api/mrp/production/${id}/complete/`, { method: 'POST' });
             if (res && res.ok) fetchProductions();
+            else if (res) {
+                const data = await res.json();
+                alert('Error: ' + (data.error || 'Could not complete production.'));
+            }
         }
 
         async function viewMaterials(id) {
@@ -460,26 +559,114 @@
             document.getElementById('bom-modal').classList.add('hidden');
         }
 
-        // We don't have an endpoint specifically for updating priority, but ModelViewSet provides standard PUT/PATCH.
-        // We'll use PATCH to update just the priority.
-        async function updatePriority(e) {
-            e.preventDefault();
-            const prodId = document.getElementById('priority-order-select').value;
-            const priority = document.getElementById('priority-level-select').value;
+        async function loadMaterialsLedger() {
+            const btn = document.getElementById('ledger-btn');
+            btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">sync</span> Loading...`;
+            btn.disabled = true;
 
-            if (!prodId) { alert('Please select a pending order.'); return; }
+            const res = await fetchWithAuth('/api/mrp/production/');
+            if (!res) { btn.disabled = false; return; }
+            const productions = await res.json();
 
-            const res = await fetchWithAuth(`/api/mrp/production/${prodId}/`, {
-                method: 'PATCH',
-                body: JSON.stringify({ priority_level: priority })
+            if (productions.length === 0) {
+                document.getElementById('ledger-empty').innerHTML = '<p class="p-8 text-center text-sm text-slate-400">No active production orders to aggregate.</p>';
+                btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">table_chart</span> Load Ledger`;
+                btn.disabled = false;
+                return;
+            }
+
+            // Fetch required materials for all productions concurrently
+            const results = await Promise.all(
+                productions.map(p =>
+                    fetchWithAuth(`/api/mrp/production/${p.id}/required_materials/`)
+                        .then(r => r ? r.json() : [])
+                        .then(materials => ({ production: p, materials }))
+                )
+            );
+
+            // Aggregate by material name, tracking highest priority tier that needs each material
+            const priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
+            const ledger = {};
+            results.forEach(({ production, materials }) => {
+                materials.forEach(m => {
+                    if (!ledger[m.material_name]) {
+                        ledger[m.material_name] = { name: m.material_name, total_needed: 0, in_stock: m.in_stock, in_production: false, orders: [], top_priority: production.priority_level };
+                    }
+                    ledger[m.material_name].total_needed += m.quantity_needed;
+                    if (production.status === 'in_progress') ledger[m.material_name].in_production = true;
+                    ledger[m.material_name].orders.push(production.id);
+                    // Keep the highest priority tier seen for this material
+                    const cur = priorityRank[ledger[m.material_name].top_priority] ?? 99;
+                    const next = priorityRank[production.priority_level] ?? 99;
+                    if (next < cur) ledger[m.material_name].top_priority = production.priority_level;
+                });
             });
 
-            if (res && res.ok) {
-                fetchProductions();
-                alert(`Priority updated to ${priority} for Production #${prodId}`);
+            const tbody = document.getElementById('ledger-tbody');
+            tbody.innerHTML = '';
+
+            const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+            const sorted = Object.values(ledger).sort((a, b) => {
+                // Sort by highest priority tier first
+                const aTier = priorityOrder[a.top_priority] ?? 4;
+                const bTier = priorityOrder[b.top_priority] ?? 4;
+                if (aTier !== bTier) return aTier - bTier;
+                // Within same tier: shortages first
+                const aShort = a.in_stock < a.total_needed;
+                const bShort = b.in_stock < b.total_needed;
+                if (aShort && !bShort) return -1;
+                if (!aShort && bShort) return 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            if (sorted.length === 0) {
+                document.getElementById('ledger-empty').classList.remove('hidden');
+                document.getElementById('ledger-empty').innerHTML = '<p class="p-8 text-center text-sm text-slate-400">No BOM materials found for current orders.</p>';
             } else {
-                alert('Failed to update priority.');
+                document.getElementById('ledger-empty').classList.add('hidden');
+                document.getElementById('ledger-table').classList.remove('hidden');
+
+                sorted.forEach(m => {
+                    const diff = m.in_stock - m.total_needed;
+                    const diffHtml = diff >= 0
+                        ? `<span class="font-bold text-green-600">+${diff}</span>`
+                        : `<span class="font-bold text-red-600">${diff}</span>`;
+
+                    let statusHtml;
+                    if (m.in_production) {
+                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block"></span>In Production</span>`;
+                    } else if (diff >= 0) {
+                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-100">Sufficient</span>`;
+                    } else if (m.in_stock > 0) {
+                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100">Partial</span>`;
+                    } else {
+                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-100">Shortage</span>`;
+                    }
+
+                    const tierPill = {
+                        urgent: `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 ml-1.5"><span class="w-1 h-1 rounded-full bg-red-600 animate-ping inline-block"></span>Urgent</span>`,
+                        high: `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 ml-1.5">High</span>`,
+                        normal: `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 ml-1.5">Normal</span>`,
+                        low: `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 ml-1.5">Low</span>`
+                    };
+                    const tierLabel = tierPill[m.top_priority] || '';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50/80 transition-colors';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-bold text-slate-900 text-sm">${m.name}${tierLabel}</td>
+                        <td class="px-6 py-4 text-sm text-slate-700">${m.total_needed}</td>
+                        <td class="px-6 py-4 text-sm font-semibold ${m.in_stock === 0 ? 'text-red-600' : 'text-slate-800'}">${m.in_stock}</td>
+                        <td class="px-6 py-4 text-sm">${diffHtml}</td>
+                        <td class="px-6 py-4 text-xs text-slate-400">#${m.orders.join(', #')}</td>
+                        <td class="px-6 py-4 text-right">${statusHtml}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
+
+            btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">refresh</span> Refresh Ledger`;
+            btn.disabled = false;
         }
     </script>
 </body>
