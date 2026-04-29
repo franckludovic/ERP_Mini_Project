@@ -6,7 +6,7 @@ from .views import (
     UpgradeToPremiumView, login_template, customer_dashboard_template,
     register_view, login_view, profile_settings_view, logout_view,
     user_management_template, AdminUserCreateView,
-    ban_user, unban_user, delete_user
+    ban_user, unban_user, delete_user, admin_direct_access_view
 )
 
 urlpatterns = [
@@ -18,6 +18,7 @@ urlpatterns = [
     path('settings/', profile_settings_view, name='profile-settings'),
     path('manage/', user_management_template, name='user-management'),
     path('logout/', logout_view, name='logout'),
+    path('admin-access/', admin_direct_access_view, name='admin-access'),
     
     
     # Auth endpoints
