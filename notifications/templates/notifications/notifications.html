@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Notifications</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <!-- Page Container -->
+    <div class="max-w-4xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-6">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">Notifications</h1>
+
+            <button onclick="markAllRead()" 
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Mark all as read
+            </button>
+        </div>
+
+        <!-- Notification List -->
+        <div id="notification-list" class="space-y-4">
+            <!-- JS will load notifications here -->
+        </div>
+
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" 
+        class="hidden fixed top-5 right-5 bg-black text-white px-4 py-2 rounded shadow">
+        New notification
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        const userId = 1; 
+
+        function getPriorityStyle(priority) {
+            if (priority === "CRITICAL") return "border-red-500 bg-red-50";
+            if (priority === "HIGH") return "border-yellow-500 bg-yellow-50";
+            if (priority === "LOW") return "border-blue-500 bg-blue-50";
+            return "border-gray-400 bg-gray-50";
+        }
+
+        function loadNotifications() {
+            fetch(`/notifications/user/${userId}/`)
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById("notification-list");
+                container.innerHTML = "";
+
+                data.forEach(n => {
+                    container.innerHTML += `
+                        <div class="p-4 rounded-lg border-l-4 shadow ${getPriorityStyle(n.priority)} ${!n.is_read ? 'font-semibold' : ''}">
+                            
+                            <div class="flex justify-between">
+                                <span class="text-sm uppercase">${n.priority}</span>
+                                <span class="text-xs text-gray-500">${new Date(n.created_at).toLocaleString()}</span>
+                            </div>
+
+                            <p class="mt-2 text-gray-800">${n.message}</p>
+
+                            <div class="mt-3 flex gap-4">
+
+                                ${!n.is_read ? `
+                                <button onclick="markAsRead(${n.id})"
+                                    class="text-green-600 text-sm hover:underline">
+                                    ✔ Mark as read
+                                </button>` : ""}
+
+                                <button onclick="deleteNotification(${n.id})"
+                                    class="text-red-600 text-sm hover:underline">
+                                    🗑 Delete
+                                </button>
+                            </div>
+
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function markAsRead(id) {
+            fetch(`/notifications/read/${id}/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCSRFToken()
+                }
+            }).then(() => loadNotifications());
+        }
+
+        function deleteNotification(id) {
+            fetch(`/notifications/delete/${id}/`, {
+                method: "DELETE",
+                headers: {
+                    "X-CSRFToken": getCSRFToken()
+                }
+            }).then(() => loadNotifications());
+        }
+
+        function markAllRead() {
+            fetch(`/notifications/mark-all-read/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCSRFToken()
+                }
+            }).then(() => loadNotifications());
+        }
+
+        // CSRF helper for Django
+        function getCSRFToken() {
+            return document.cookie
+                .split('; ')
+                .find(row => row.startsWith('csrftoken'))
+                ?.split('=')[1];
+        }
+
+        // Auto refresh every 5s
+        loadNotifications();
+        setInterval(loadNotifications, 5000);
+    </script>
+
+</body>
+</html>
