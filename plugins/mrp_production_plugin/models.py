@@ -1,6 +1,6 @@
 from django.db import models
 from plugins.inventory_plugin.models import Product, Material
-from plugins.orders_plugin.models import Order
+from plugins.orders_plugin.models import Order, OrderItem
 
 class BOM(models.Model): # Bill of Materials
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -19,7 +19,8 @@ class Production(models.Model):
         ('shipped', 'Shipped'),
         ('delivered', 'Delivered'),
     )
-    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    # Refactored to link to specific order item
+    item = models.OneToOneField(OrderItem, on_delete=models.CASCADE, related_name='production')
     status = models.CharField(max_length=20, default='pending')
     priority_level = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='low')
     delivery_status = models.CharField(max_length=20, choices=DELIVERY_STATUS_CHOICES, default='pending')

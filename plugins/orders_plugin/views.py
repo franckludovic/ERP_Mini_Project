@@ -88,10 +88,19 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Create order items
         created_items = []
         for item_data in items_data:
+            # Auto-resolve Product FK from inventory if not provided
+            product_id = item_data.get('product_id')
+            product_obj = None
+            from plugins.inventory_plugin.models import Product
+            if product_id:
+                product_obj = Product.objects.filter(pk=product_id).first()
+            if not product_obj:
+                product_obj = Product.objects.filter(name__iexact=item_data['product_name']).first()
+            
             order_item = OrderItem.objects.create(
                 order=order,
                 product_name=item_data['product_name'],
-                product_id=item_data.get('product_id'),
+                product=product_obj,
                 quantity=item_data['quantity'],
                 unit_price=item_data['unit_price']
             )
@@ -241,6 +250,31 @@ class OrderViewSet(viewsets.ModelViewSet):
             'priority': 'urgent',
             'message': 'Order marked as urgent'
         })
+
+    @action(detail=True, methods=['post'])
+    def confirm_receipt(self, request, pk=None):
+        """Customer confirms receipt of order"""
+        order = get_object_or_404(Order, pk=pk)
+        
+        try:
+            from plugins.mrp_production_plugin.models import Production
+            productions = Production.objects.filter(item__order=order)
+            if productions.exists():
+                productions.update(delivery_status='delivered')
+                # Deduct delivered products from finished goods inventory
+                for prod in productions:
+                    product = prod.item.product
+                    quantity = prod.item.quantity
+                    if product and quantity:
+                        product.quantity_in_stock = max(0, product.quantity_in_stock - quantity)
+                        product.save()
+        except ImportError:
+            pass
+            
+        return Response({
+            'success': True,
+            'message': 'Receipt confirmed successfully'
+        })
     
     @action(detail=True, methods=['get'])
     def get_order_with_items(self, request, pk=None):
@@ -270,7 +304,13 @@ def dashboard_view(request):
     grade_3_count = Order.objects.filter(grade='3rd').count()
 
     # Get latest orders for the table
-    orders = Order.objects.all().select_related('customer').order_by('-created_at')[:20]
+    from django.db.models import Subquery, OuterRef
+    try:
+        from plugins.mrp_production_plugin.models import Production
+        delivery_status_sq = Production.objects.filter(item__order=OuterRef('pk')).values('delivery_status')[:1]
+        orders = Order.objects.all().select_related('customer').annotate(delivery_status=Subquery(delivery_status_sq)).order_by('-created_at')[:20]
+    except ImportError:
+        orders = Order.objects.all().select_related('customer').order_by('-created_at')[:20]
     
     context = {
         'total_active_orders': total_active_orders,
@@ -299,15 +339,12 @@ def customer_dashboard_view(request):
     # customer = request.user
     # ------------------------------------------------------------------------
     
-    # --- CURRENT DEVELOPMENT CODE (Delete this block when User Management is ready) ---
-    if request.user.is_authenticated:
-        customer = request.user
-    else:
-        customer = User.objects.filter(role='customer').first()
-        
+    from plugins.users_plugin.views import _require_session_user
+    customer = _require_session_user(request)
+    
     if not customer:
-        customer = User.objects.first() # Fallback if no customers exist
-    # ----------------------------------------------------------------------------------
+        from django.shortcuts import redirect
+        return redirect('login-template')
         
     # Calculate metrics
     completed_orders = Order.objects.filter(customer=customer, status='completed')
@@ -318,7 +355,13 @@ def customer_dashboard_view(request):
     active_shipments_count = Order.objects.filter(customer=customer).exclude(status__in=['completed', 'rejected']).count()
     
     # Get latest orders for the table
-    orders = Order.objects.filter(customer=customer).order_by('-created_at')[:20]
+    from django.db.models import Subquery, OuterRef
+    try:
+        from plugins.mrp_production_plugin.models import Production
+        delivery_status_sq = Production.objects.filter(item__order=OuterRef('pk')).values('delivery_status')[:1]
+        orders = Order.objects.filter(customer=customer).annotate(delivery_status=Subquery(delivery_status_sq)).order_by('-created_at')[:20]
+    except ImportError:
+        orders = Order.objects.filter(customer=customer).order_by('-created_at')[:20]
     
     # Calculate progress to Premium (7 orders, 3M XAF)
     orders_progress = min((completed_orders_count / 7) * 100, 100)
@@ -348,13 +391,12 @@ def order_history_view(request):
     from django.contrib.auth import get_user_model
     User = get_user_model()
     
-    if request.user.is_authenticated:
-        customer = request.user
-    else:
-        customer = User.objects.filter(role='customer').first()
-        
+    from plugins.users_plugin.views import _require_session_user
+    customer = _require_session_user(request)
+    
     if not customer:
-        customer = User.objects.first()
+        from django.shortcuts import redirect
+        return redirect('login-template')
         
     orders = Order.objects.filter(customer=customer).order_by('-created_at')
     

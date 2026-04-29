@@ -9,7 +9,19 @@ class BOMViewSet(viewsets.ModelViewSet):
     serializer_class = BOMSerializer
 
 class ProductionViewSet(viewsets.ModelViewSet):
-    queryset = Production.objects.all()
+    def get_queryset(self):
+        from django.db.models import Case, When, Value, IntegerField
+        return Production.objects.annotate(
+            priority_weight=Case(
+                When(item__order__priority='urgent', then=Value(1)),
+                When(item__order__priority='high', then=Value(2)),
+                When(item__order__priority='normal', then=Value(3)),
+                When(item__order__priority='low', then=Value(4)),
+                default=Value(5),
+                output_field=IntegerField(),
+            )
+        ).order_by('priority_weight', '-start_date')
+    
     serializer_class = ProductionSerializer
 
     @action(detail=True, methods=['post'])
@@ -22,12 +34,33 @@ class ProductionViewSet(viewsets.ModelViewSet):
         production.save()
 
         # Update product inventory (Requirement 13)
-        product = production.order.product
-        quantity = production.order.quantity
-        product.quantity_in_stock += quantity
-        product.save()
+        product = production.item.product
+        quantity = production.item.quantity
 
-        return Response({'status': 'Production completed, inventory updated'})
+        # NEW RULE: Cannot complete if materials are insufficient, even if it was urgent
+        from plugins.inventory_plugin.models import ProductMaterial
+        pms = ProductMaterial.objects.filter(product=product)
+        
+        # Completion is allowed only if all materials for this product have stock >= 0.
+        for pm in pms:
+            if pm.material.quantity_in_stock < 0:
+                return Response({
+                    'error': f'Cannot complete: {pm.material.name} is still in deficit ({pm.material.quantity_in_stock}). Please resupply inventory first.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        production.status = 'completed'
+        production.save()
+
+        # Update order status
+        if hasattr(production, 'item') and production.item and production.item.order:
+            production.item.order.status = 'completed'
+            production.item.order.save()
+
+        if product:
+            product.quantity_in_stock += quantity
+            product.save()
+
+        return Response({'status': 'Production completed, order status updated to completed, and inventory updated'})
 
     @action(detail=True, methods=['post'])
     def update_delivery(self, request, pk=None):
@@ -41,33 +74,47 @@ class ProductionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def fetch_orders(self, request):
-        from plugins.orders_plugin.models import Order
-        orders = Order.objects.filter(production__isnull=True)
+        from plugins.orders_plugin.models import Order, OrderItem
+        # Get all items from validated orders that don't have a production run yet
+        items = OrderItem.objects.filter(order__status='validated', production__isnull=True)
         count = 0
-        for order in orders:
-            priority = 'urgent' if order.is_urgent else 'normal'
-            Production.objects.create(order=order, priority_level=priority)
+        for item in items:
+            # Use order priority as default
+            priority = item.order.priority
+            Production.objects.create(item=item, priority_level=priority)
             count += 1
         return Response({'status': f'Fetched and created {count} production orders.'})
 
     @action(detail=True, methods=['get'])
     def required_materials(self, request, pk=None):
         production = self.get_object()
-        boms = BOM.objects.filter(product=production.order.product)
-        order_quantity = production.order.quantity
+        if not production.item.product:
+            return Response({'error': 'No product associated with this item'}, status=400)
+            
+        from plugins.inventory_plugin.models import ProductMaterial
+        pms = ProductMaterial.objects.filter(product=production.item.product)
+        order_quantity = production.item.quantity
         
         materials_needed = []
-        for bom in boms:
-            needed = bom.quantity_required * order_quantity
-            in_stock = bom.material.quantity_in_stock
+        for pm in pms:
+            needed = pm.quantity_required * order_quantity
+            in_stock = pm.material.quantity_in_stock
             materials_needed.append({
-                'material_name': bom.material.name,
+                'material_name': pm.material.name,
                 'quantity_needed': needed,
                 'in_stock': in_stock,
                 'is_sufficient': in_stock >= needed
             })
             
-        return Response(materials_needed)
+        return Response({
+            'product_name': production.item.product.name,
+            'order_id': production.item.order.id,
+            'quantity': order_quantity,
+            'priority': production.item.order.priority,
+            'delivery_date': production.item.order.expected_delivery_date,
+            'total_value': production.item.order.total_amount,
+            'materials': materials_needed
+        })
 
     @action(detail=True, methods=['post'])
     def start(self, request, pk=None):
@@ -75,59 +122,104 @@ class ProductionViewSet(viewsets.ModelViewSet):
         if production.status != 'pending':
             return Response({'error': 'Can only start pending productions'}, status=400)
             
-        boms = BOM.objects.filter(product=production.order.product)
-        order_quantity = production.order.quantity
+        if not production.item.product:
+            return Response({'error': 'No product associated with this item'}, status=400)
+
+        from plugins.inventory_plugin.models import ProductMaterial
+        pms = ProductMaterial.objects.filter(product=production.item.product)
+        order_quantity = production.item.quantity
+        priority = production.item.order.priority
         
         insufficient_materials = []
-        for bom in boms:
-            needed = bom.quantity_required * order_quantity
-            if bom.material.quantity_in_stock < needed:
-                insufficient_materials.append(bom.material)
+        for pm in pms:
+            needed_total = pm.quantity_required * order_quantity
+            needed_unit = pm.quantity_required
+            
+            if priority == 'urgent':
+                if pm.material.quantity_in_stock < needed_unit:
+                    insufficient_materials.append(pm.material)
+            else:
+                if pm.material.quantity_in_stock < needed_total:
+                    insufficient_materials.append(pm.material)
 
-        if insufficient_materials and production.priority_level != 'urgent':
+        if insufficient_materials:
             return Response({
-                'error': f'Not enough stock for some materials. Found shortage for {len(insufficient_materials)} materials.'
+                'error': f'Not enough stock to start. {"Even 1 unit cannot be made." if priority == "urgent" else "Full materials required for normal order."} Shortage for: {", ".join([m.name for m in insufficient_materials])}'
             }, status=400)
 
-        if insufficient_materials and production.priority_level == 'urgent':
-            from plugins.notifications_plugin.models import Notification
-            from django.contrib.auth import get_user_model
-            User = get_user_model()
-            admin_user = User.objects.filter(is_superuser=True).first()
-            if admin_user:
-                msg = f"URGENT Production #{production.id} started. Shortage for: " + ", ".join([m.name for m in insufficient_materials])
-                Notification.objects.create(user=admin_user, message=msg)
+        if priority == 'urgent':
+            # Check if there is enough for the FULL order
+            partial_shortage = []
+            for pm in pms:
+                if pm.material.quantity_in_stock < (pm.quantity_required * order_quantity):
+                    partial_shortage.append(pm.material)
+            if partial_shortage:
+                from plugins.notifications_plugin.models import Notification
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                admin_user = User.objects.filter(is_superuser=True).first()
+                if admin_user:
+                    msg = f"URGENT Production #{production.id} started. Shortage for full run: " + ", ".join([m.name for m in partial_shortage])
+                    Notification.objects.create(user=admin_user, message=msg)
                 
         # Deduct inventory
-        for bom in boms:
-            needed = bom.quantity_required * order_quantity
-            bom.material.quantity_in_stock -= needed
-            bom.material.save()
+        for pm in pms:
+            needed = pm.quantity_required * order_quantity
+            pm.material.quantity_in_stock -= needed
+            pm.material.save()
             
         production.status = 'in_progress'
         production.save()
         return Response({'status': 'Production started. Stock deducted.'})
 
-    @action(detail=True, methods=['post'])
-    def request_materials(self, request, pk=None):
-        production = self.get_object()
-        boms = BOM.objects.filter(product=production.order.product)
-        order_quantity = production.order.quantity
+    @action(detail=False, methods=['get'])
+    def ledger_details(self, request):
+        from plugins.inventory_plugin.models import ProductMaterial
         
-        shortages = []
-        for bom in boms:
-            needed = bom.quantity_required * order_quantity
-            if bom.material.quantity_in_stock < needed:
-                shortages.append(f"{bom.material.name} ({needed - bom.material.quantity_in_stock} units)")
-                
-        if not shortages:
-            return Response({'status': 'No material shortage.'}, status=400)
+        active_productions = Production.objects.filter(status__in=['pending', 'in_progress'])
+        
+        ledger_data = []
+        for prod in active_productions:
+            if not prod.item.product: continue
             
+            pms = ProductMaterial.objects.filter(product=prod.item.product)
+            for pm in pms:
+                needed = pm.quantity_required * prod.item.quantity
+                in_stock = pm.material.quantity_in_stock
+                diff = in_stock - needed
+                
+                if diff > 0:
+                    status_text = 'surplus'
+                elif diff < 0:
+                    status_text = 'shortage'
+                else:
+                    status_text = 'equal'
+                
+                ledger_data.append({
+                    'material_id': pm.material.id,
+                    'material_name': pm.material.name,
+                    'product_name': prod.item.product.name,
+                    'order_id': prod.item.order.id,
+                    'needed': needed,
+                    'in_stock': in_stock,
+                    'balance': diff,
+                    'status': status_text
+                })
+                
+        return Response(ledger_data)
+
+    @action(detail=False, methods=['post'])
+    def request_restock(self, request):
+        material_name = request.data.get('material_name')
+        needed = request.data.get('needed')
+        order_id = request.data.get('order_id')
+        
         from plugins.notifications_plugin.models import Notification
         from django.contrib.auth import get_user_model
         User = get_user_model()
         admin_user = User.objects.filter(is_superuser=True).first()
         if admin_user:
-            Notification.objects.create(user=admin_user, message=f"Material Request for Prod #{production.id}: " + ", ".join(shortages))
-            return Response({'status': 'Materials requested from warehouse.'})
+            msg = f"Restock request for {material_name}: Needed {needed} for Order #ORD-{order_id}"
+            Notification.objects.create(user=admin_user, message=msg)
+            return Response({'status': 'Restock notification sent.'})
         return Response({'error': 'No admin user found to send notification to.'}, status=400)

@@ -37,150 +37,129 @@
 
 <body class="bg-slate-50 text-slate-900">
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-200">
-            <div class="text-center mb-6">
-                <h1 class="text-2xl font-black text-indigo-600 mb-1">Nexus ERP</h1>
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-widest">Production Module</p>
-            </div>
-            <div id="error-msg" class="text-red-600 text-sm mb-4 text-center font-medium"></div>
-            <form id="login-form" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1 ml-1 uppercase">Username</label>
-                    <input type="text" id="username"
-                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                        required>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1 ml-1 uppercase">Password</label>
-                    <input type="password" id="password"
-                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                        required>
-                </div>
-                <button type="submit"
-                    class="w-full py-3 mt-2 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all">
-                    Access Dashboard
-                </button>
-            </form>
-        </div>
-    </div>
-
     <!-- MAIN DASHBOARD -->
-    <div id="dashboard-screen" class="hidden flex h-screen overflow-hidden">
+    <div id="dashboard-screen" class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-white border-r border-slate-200 shadow-[4px_0_24px_rgba(15,23,42,0.02)] flex flex-col p-4 gap-2 z-50 h-full">
+            <div class="mb-8 px-4 mt-2">
+                <h1 class="text-xl font-black text-indigo-600">Nexus <span class="text-slate-900">MRP</span></h1>
+                <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">Production Hub</p>
+            </div>
+            
+            <nav class="flex-1 flex flex-col gap-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex items-center gap-3 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-['Inter'] text-sm font-semibold sidebar-active">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                    <span>Production</span>
+                </button>
+                <button onclick="switchTab('ledger')" id="nav-ledger" class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    <span>Material Ledger</span>
+                </button>
+                <button onclick="switchTab('history')" id="nav-history" class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium">
+                    <span class="material-symbols-outlined">history</span>
+                    <span>Prod. History</span>
+                </button>
+                <button onclick="switchTab('notifications')" id="nav-notifications" class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium relative">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span>Notifications</span>
+                    <span id="notif-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                </button>
+            </nav>
+
+            <div class="mt-auto border-t border-slate-100 pt-4">
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-all rounded-lg font-['Inter'] text-sm font-medium">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span>Sign Out</span>
+                </button>
+            </div>
+        </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-y-auto bg-slate-50/50">
-            <!-- TopAppBar -->
-            <header
-                class="flex justify-between items-center h-16 px-8 sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-30">
-                <h2 class="text-lg font-bold tracking-tight text-slate-900">MRP &amp; Production</h2>
-                <div class="flex items-center gap-4">
-                    <button onclick="triggerFetchOrders()"
-                        class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-indigo-700 shadow-sm active:scale-95 transition-all">
-                        <span class="material-symbols-outlined text-[18px]">sync</span>
-                        Fetch Customer Orders
-                    </button>
-                    <button onclick="fetchProductions()"
-                        class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
-                        <span class="material-symbols-outlined">refresh</span>
-                    </button>
-                    <div class="w-px h-6 bg-slate-200 mx-1"></div>
-                    <button onclick="logout()"
-                        class="flex items-center gap-2 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all font-semibold text-sm">
-                        <span class="material-symbols-outlined text-[18px]">logout</span>
-                        Logout
-                    </button>
-                </div>
-            </header>
+        <div class="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
 
-            <div class="p-8 space-y-8 max-w-7xl mx-auto w-full">
-
-                <!-- Top Metrics & Controls -->
-                <div class="grid grid-cols-12 gap-6">
-                    <!-- Material Health Summary -->
-                    <div class="col-span-12 bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 class="text-xl font-bold text-slate-900">Material Health Overview</h3>
-                                <p class="text-sm text-slate-500">Stock availability for all required BOM materials</p>
+            <!-- Scrollable Content Area -->
+            <div id="tab-container" class="flex-1 overflow-y-auto p-8">
+                
+                <!-- DASHBOARD TAB -->
+                <div id="tab-dashboard" class="tab-content space-y-8">
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Runs</p>
+                            <p id="stat-total-runs" class="text-3xl font-black text-slate-900">0</p>
+                            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500" style="width: 100%"></div>
                             </div>
-                            <button onclick="openBomModal()"
-                                class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
-                                View Bill of Materials
-                            </button>
                         </div>
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
-                            <div
-                                class="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex flex-col justify-center">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-bold text-indigo-700 uppercase tracking-wide">Total
-                                        Runs</span>
-                                    <span class="material-symbols-outlined text-indigo-500"
-                                        style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
-                                </div>
-                                <div class="text-3xl font-black text-indigo-900" id="stat-total-runs">0</div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pending</p>
+                            <p id="stat-pending" class="text-3xl font-black text-slate-900">0</p>
+                            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div id="stat-pending-bar" class="h-full bg-amber-500" style="width: 0%"></div>
                             </div>
-                            <div
-                                class="p-4 bg-orange-50/50 rounded-xl border border-orange-100 flex flex-col justify-center">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span
-                                        class="text-xs font-bold text-orange-700 uppercase tracking-wide">Pending</span>
-                                    <span class="material-symbols-outlined text-orange-500">pending_actions</span>
-                                </div>
-                                <div class="text-3xl font-black text-orange-900" id="stat-pending">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">In Progress</p>
+                            <p id="stat-in-progress" class="text-3xl font-black text-slate-900">0</p>
+                            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div id="stat-in-progress-bar" class="h-full bg-indigo-600" style="width: 0%"></div>
                             </div>
-                            <div
-                                class="p-4 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col justify-center">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-bold text-blue-700 uppercase tracking-wide">In
-                                        Progress</span>
-                                    <span class="material-symbols-outlined text-blue-500">manufacturing</span>
-                                </div>
-                                <div class="text-3xl font-black text-blue-900" id="stat-in-progress">0</div>
-                            </div>
-                            <div
-                                class="p-4 bg-green-50/50 rounded-xl border border-green-100 flex flex-col justify-center">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span
-                                        class="text-xs font-bold text-green-700 uppercase tracking-wide">Completed</span>
-                                    <span class="material-symbols-outlined text-green-500"
-                                        style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                                </div>
-                                <div class="text-3xl font-black text-green-900" id="stat-completed">0</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Completed</p>
+                            <p id="stat-completed" class="text-3xl font-black text-slate-900">0</p>
+                            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div id="stat-completed-bar" class="h-full bg-green-500" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Main Table Area -->
-                <div class="grid grid-cols-12 gap-6">
-                    <div class="col-span-12">
-                        <div class="flex justify-between items-center mb-4 px-1">
-                            <h4 class="text-lg font-bold text-slate-900">Active Production Orders</h4>
+                    <!-- Active Production Table -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-slate-900 flex items-center">Active Production Orders <span id="total-rows-badge" class="ml-3 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md text-[10px] font-bold">0 ITEMS</span></h3>
+                            <div class="flex items-center gap-3">
+                                <select id="filter-status" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-slate-600 font-medium">
+                                    <option value="">All Statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="in_progress">In Progress</option>
+                                </select>
+                                <select id="filter-priority" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-slate-600 font-medium">
+                                    <option value="">All Priorities</option>
+                                    <option value="urgent">Urgent</option>
+                                    <option value="high">High</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="low">Low</option>
+                                </select>
+                                <select id="filter-logistics" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-slate-600 font-medium">
+                                    <option value="">All Logistics</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="shipped">Shipped</option>
+                                    <option value="delivered">Delivered</option>
+                                </select>
+                                <div class="relative">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                                    <input type="text" id="mrp-search" oninput="applyMrpFilters()" placeholder="Search orders..." 
+                                        class="pl-10 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-48 transition-all shadow-sm">
+                                </div>
+                                <button onclick="triggerFetchOrders()" class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all shadow-sm" title="Sync Validated Orders">
+                                    <span class="material-symbols-outlined text-[18px]">sync</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-                            <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
                                 <thead>
-                                    <tr class="bg-slate-50 border-b border-slate-200">
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Prod ID</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Order Ref</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Priority</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Status</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Delivery Status</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                            Expected Delivery</th>
-                                        <th
-                                            class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
-                                            Actions</th>
+                                    <tr class="bg-slate-50/50">
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product / Order</th>
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Priority</th>
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logistics</th>
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="production-tbody" class="divide-y divide-slate-100">
+                                <tbody id="production-tbody" class="divide-y divide-slate-50">
                                     <!-- Injected via JS -->
                                 </tbody>
                             </table>
@@ -188,50 +167,82 @@
                     </div>
                 </div>
 
-                <!-- Materials Ledger Section -->
-                <div>
-                    <div class="flex justify-between items-center mb-4 px-1">
-                        <div>
-                            <h4 class="text-lg font-bold text-slate-900">Materials Ledger</h4>
-                            <p class="text-xs text-slate-500 mt-0.5">Aggregated stock vs. demand across all active
-                                production orders</p>
+                <!-- LEDGER TAB -->
+                <div id="tab-ledger" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-8">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900">Materials Ledger</h3>
+                                <p class="text-sm text-slate-500">Real-time inventory health and shortage tracking</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="relative">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                                    <input type="text" id="ledger-search" placeholder="Search materials or orders..." 
+                                        class="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64 transition-all">
+                                </div>
+                                <button onclick="loadMaterialsLedger()" title="Refresh Inventory Analysis" class="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all shadow-sm">
+                                    <span class="material-symbols-outlined">refresh</span>
+                                </button>
+                            </div>
                         </div>
-                        <button onclick="loadMaterialsLedger()" id="ledger-btn"
-                            class="flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-lg transition-colors">
-                            <span class="material-symbols-outlined text-[18px]">table_chart</span>
-                            Load Ledger
-                        </button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div id="ledger-empty" class="p-12 flex flex-col items-center justify-center text-slate-400">
-                            <span class="material-symbols-outlined text-5xl mb-3"
-                                style="font-variation-settings: 'FILL' 0;">inventory_2</span>
-                            <p class="text-sm font-semibold">Material ledger not loaded.</p>
-                            <p class="text-xs mt-1">Click <strong class="text-indigo-600">Load Ledger</strong> above to
-                                aggregate material requirements.</p>
+                        
+                        <div id="ledger-empty" class="py-20 text-center text-slate-400">
+                            <span class="material-symbols-outlined text-5xl mb-4">inventory_2</span>
+                            <p class="font-bold">No data analyzed yet</p>
+                            <p class="text-sm">Click the button above to calculate material requirements</p>
                         </div>
-                        <table id="ledger-table" class="hidden w-full text-left border-collapse whitespace-nowrap">
-                            <thead>
-                                <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Material</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Total Needed</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">In
-                                        Stock</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Surplus / Deficit</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                        Linked Orders</th>
-                                    <th
-                                        class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
-                                        Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ledger-tbody" class="divide-y divide-slate-100"></tbody>
-                        </table>
+                        <div id="ledger-table-container" class="hidden overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50/50">
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order ID</th>
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product</th>
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Material</th>
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Needed / Stock</th>
+                                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ledger-tbody" class="divide-y divide-slate-50"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
+
+                <!-- HISTORY TAB -->
+                <div id="tab-history" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+                            <h3 class="font-bold text-slate-900">Completed Productions</h3>
+                            <button onclick="fetchHistory()" title="Refresh History" class="w-8 h-8 flex items-center justify-center bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-all shadow-sm">
+                                <span class="material-symbols-outlined text-[18px]">refresh</span>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50/50">
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product</th>
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Completion Date</th>
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantity</th>
+                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Reference</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-tbody" class="divide-y divide-slate-50">
+                                    <!-- Injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTIFICATIONS TAB -->
+                <div id="tab-notifications" class="tab-content hidden space-y-6">
+                    <div class="max-w-3xl mx-auto space-y-4" id="notif-list">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -256,63 +267,89 @@
     </div>
 
     <script>
-        let jwtToken = localStorage.getItem('access_token');
-        const loginScreen = document.getElementById('login-screen');
-        const dashboardScreen = document.getElementById('dashboard-screen');
-        const errorMsg = document.getElementById('error-msg');
+        let jwtToken = null; // No longer needed for session auth, but keeping variable for fetchWithAuth compatibility
         let currentProductions = [];
 
-        if (jwtToken) {
-            showDashboard();
-        }
-
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                const res = await fetch('/api/token/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    jwtToken = data.access;
-                    localStorage.setItem('access_token', jwtToken);
-                    showDashboard();
-                } else {
-                    errorMsg.innerText = data.detail || 'Invalid credentials';
-                }
-            } catch (err) {
-                errorMsg.innerText = 'Network error connecting to backend.';
-            }
-        });
-
         function logout() {
-            localStorage.removeItem('access_token');
-            jwtToken = null;
-            dashboardScreen.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
+            window.location.href = '/api/users/logout/'; // Or whatever the logout route is
         }
 
-        function showDashboard() {
-            loginScreen.classList.add('hidden');
-            dashboardScreen.classList.remove('hidden');
+        async function initDashboard() {
+            // Auto-fetch validated orders on load
+            await triggerFetchOrders();
             fetchProductions();
+            fetchNotifications();
+        }
+
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
         }
 
         async function fetchWithAuth(url, options = {}) {
             const headers = {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${jwtToken}`,
                 ...options.headers
             };
+            if (jwtToken) {
+                headers['Authorization'] = `Bearer ${jwtToken}`;
+            }
+            const csrfToken = getCookie('csrftoken');
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
             const res = await fetch(url, { ...options, headers });
-            if (res.status === 401) { logout(); return null; }
+            if (res.status === 401 || res.status === 403) {
+                // If 403 is returned, it might be due to invalid CSRF or auth issue
+                if (res.status === 401) logout(); 
+                return res; 
+            }
             return res;
+        }
+
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Show selected tab
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            
+            // Update nav styles
+            document.querySelectorAll('aside nav button').forEach(btn => {
+                btn.classList.remove('sidebar-active', 'bg-indigo-50', 'text-indigo-700', 'font-semibold');
+                btn.classList.add('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-50', 'font-medium');
+                // Adjust the icon style back to outline
+                const icon = btn.querySelector('.material-symbols-outlined');
+                if(icon) icon.style.fontVariationSettings = "'FILL' 0";
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.classList.remove('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-50', 'font-medium');
+            activeBtn.classList.add('sidebar-active', 'bg-indigo-50', 'text-indigo-700', 'font-semibold');
+            const activeIcon = activeBtn.querySelector('.material-symbols-outlined');
+            if(activeIcon) activeIcon.style.fontVariationSettings = "'FILL' 1";
+            
+            // Update title
+            const titles = {
+                dashboard: 'Production Dashboard',
+                ledger: 'Material Ledger',
+                history: 'Production History',
+                notifications: 'Notifications'
+            };
+            document.getElementById('current-tab-title').innerText = titles[tabId] || 'Dashboard';
+            
+            if (tabId === 'ledger') loadMaterialsLedger();
+            if (tabId === 'history') fetchHistory();
         }
 
         async function fetchProductions() {
@@ -322,353 +359,345 @@
             currentProductions = data;
 
             const tbody = document.getElementById('production-tbody');
-
+            const totalBadge = document.getElementById('total-rows-badge');
+            
             tbody.innerHTML = '';
+            const activeItems = data.filter(p => p.status !== 'completed');
+            totalBadge.innerText = `${activeItems.length} ACTIVE ITEMS`;
 
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-16 text-center">
-                    <span class="material-symbols-outlined block text-5xl text-slate-300 mb-2">inbox</span>
-                    <p class="text-sm font-semibold text-slate-400">No production orders yet.</p>
-                    <p class="text-xs text-slate-400 mt-1">Click <strong>"Fetch Customer Orders"</strong> in the top bar to load validated orders.</p>
+            if (activeItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-8 py-20 text-center">
+                    <span class="material-symbols-outlined block text-5xl text-slate-200 mb-2">inbox</span>
+                    <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">No active production runs</p>
                 </td></tr>`;
-                ['stat-total-runs', 'stat-pending', 'stat-in-progress', 'stat-completed'].forEach(id => document.getElementById(id).innerText = 0);
+                updateMetrics(data);
                 return;
             }
 
-            let counts = { total: data.length, pending: 0, completed: 0, in_progress: 0 };
-
-            data.forEach(prod => {
-                if (prod.status === 'pending') counts.pending++;
-                if (prod.status === 'completed') counts.completed++;
-                if (prod.status === 'in_progress') counts.in_progress++;
-
+            activeItems.forEach(prod => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/80 transition-colors group';
 
-                // Priority pill — always read-only (set by admin)
                 let priorityHtml = '';
-                if (prod.priority_level === 'urgent') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping"></span>Urgent</span>`;
-                else if (prod.priority_level === 'high') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600 border border-orange-100">High</span>`;
-                else if (prod.priority_level === 'normal') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">Normal</span>`;
-                else priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">Low</span>`;
+                if (prod.priority_level === 'urgent') priorityHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-red-50 text-red-600 border border-red-100 uppercase tracking-tighter"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>Urgent</span>`;
+                else priorityHtml = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-tighter">${prod.priority_level}</span>`;
 
-                // Delivery status dropdown
-                let deliveryHtml = `
-                <select onchange="updateDelivery(${prod.id}, this.value)" class="text-xs font-semibold uppercase text-slate-500 border border-slate-200 rounded px-1 py-1 outline-none bg-white">
-                    <option value="pending" ${prod.delivery_status === 'pending' ? 'selected' : ''}>PENDING</option>
-                    <option value="shipped" ${prod.delivery_status === 'shipped' ? 'selected' : ''}>SHIPPED</option>
-                    <option value="delivered" ${prod.delivery_status === 'delivered' ? 'selected' : ''}>DELIVERED</option>
-                </select>`;
-
-                // Expected delivery date
-                const expectedDate = prod.expected_delivery_date
-                    ? new Date(prod.expected_delivery_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                    : '<span class="text-slate-400 text-xs">—</span>';
-
-                // Status Badge
                 let statusHtml = '';
-                if (prod.status === 'pending') statusHtml = `<span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">Pending</span>`;
-                else if (prod.status === 'in_progress') statusHtml = `<span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">In Progress</span>`;
-                else statusHtml = `<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">Completed</span>`;
+                if (prod.status === 'pending') statusHtml = `<span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full uppercase tracking-tighter border border-amber-100">Pending Start</span>`;
+                else statusHtml = `<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase tracking-tighter border border-indigo-100">In Production</span>`;
 
-                const isUrgent = prod.priority_level === 'urgent';
+                const expectedDate = prod.expected_delivery_date
+                    ? new Date(prod.expected_delivery_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                    : '—';
 
-                // Action Buttons
                 let actionsHtml = `<div class="flex justify-end gap-2">
-                    <button onclick="viewMaterials(${prod.id})" class="text-xs font-bold bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded shadow-sm hover:bg-slate-50">Materials</button>`;
+                    <button onclick="viewMaterials(${prod.id})" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors">Details</button>`;
 
                 if (prod.status === 'pending') {
-                    actionsHtml += `<button onclick="requestMaterials(${prod.id})" class="text-xs font-bold bg-orange-100 text-orange-700 px-3 py-1.5 rounded shadow-sm hover:bg-orange-200 border border-orange-200">Request Stock</button>`;
-                    if (isUrgent) {
-                        // Urgent: always startable — bypass material check
-                        actionsHtml += `<button onclick="startProduction(${prod.id}, true)" class="text-xs font-bold bg-red-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-red-700" title="Urgent: starts immediately regardless of stock">⚡ Start Urgent</button>`;
-                    } else {
-                        actionsHtml += `<button onclick="startProduction(${prod.id}, false)" class="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-indigo-700">Start</button>`;
-                    }
-                } else if (prod.status === 'in_progress') {
-                    // Complete always goes through completeProduction() which checks materials first
-                    actionsHtml += `<button onclick="completeProduction(${prod.id})" class="text-xs font-bold bg-green-600 text-white px-3 py-1.5 rounded shadow-sm hover:bg-green-700" title="Will verify all materials are in stock before completing">Complete</button>`;
+                    actionsHtml += `<button onclick="startProduction(${prod.id}, ${prod.priority_level === 'urgent'})" class="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Start Run</button>`;
+                } else {
+                    actionsHtml += `<button onclick="completeProduction(${prod.id})" class="px-4 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-green-700 transition-all">Complete</button>`;
                 }
                 actionsHtml += `</div>`;
 
-                tr.innerHTML = `
-                    <td class="px-6 py-4 font-bold text-slate-900">#${prod.id}</td>
-                    <td class="px-6 py-4 font-medium text-slate-600">Order #${prod.order}</td>
-                    <td class="px-6 py-4">${priorityHtml}</td>
-                    <td class="px-6 py-4">${statusHtml}</td>
-                    <td class="px-6 py-4">${deliveryHtml}</td>
-                    <td class="px-6 py-4 text-sm font-medium text-slate-700">${expectedDate}</td>
-                    <td class="px-6 py-4 text-right">${actionsHtml}</td>
+                let logisticsHtml = `
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">${prod.delivery_status}</span>
+                        <span class="text-[9px] text-slate-400 font-medium">ETA: ${expectedDate}</span>
+                    </div>
                 `;
+
+                tr.innerHTML = `
+                    <td class="px-8 py-6">
+                        <div class="flex flex-col">
+                            <span class="font-black text-slate-900 text-sm">${prod.product_name}</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Order #ORD-${prod.order_id} • ${prod.quantity} Units</span>
+                        </div>
+                    </td>
+                    <td class="px-8 py-6">${priorityHtml}</td>
+                    <td class="px-8 py-6">${statusHtml}</td>
+                    <td class="px-8 py-6">${logisticsHtml}</td>
+                    <td class="px-8 py-6 text-right">${actionsHtml}</td>
+                `;
+                tr.dataset.status = prod.status;
+                tr.dataset.priority = prod.priority_level;
+                tr.dataset.logistics = prod.delivery_status;
                 tbody.appendChild(tr);
             });
+
+            updateMetrics(data);
+            applyMrpFilters(); // Re-apply current filters
+        }
+
+        function updateMetrics(data) {
+            const counts = {
+                total: data.length,
+                pending: data.filter(p => p.status === 'pending').length,
+                in_progress: data.filter(p => p.status === 'in_progress').length,
+                completed: data.filter(p => p.status === 'completed').length
+            };
 
             document.getElementById('stat-total-runs').innerText = counts.total;
             document.getElementById('stat-pending').innerText = counts.pending;
             document.getElementById('stat-in-progress').innerText = counts.in_progress;
             document.getElementById('stat-completed').innerText = counts.completed;
-        }
-        async function updatePriority(id, priority) {
-            const res = await fetchWithAuth(`/api/mrp/production/${id}/`, {
-                method: 'PATCH',
-                body: JSON.stringify({ priority_level: priority })
-            });
-            if (res && res.ok) fetchProductions();
+
+            // Update progress bars
+            const getPercent = (val) => counts.total > 0 ? (val / counts.total) * 100 : 0;
+            document.getElementById('stat-pending-bar').style.width = `${getPercent(counts.pending)}%`;
+            document.getElementById('stat-in-progress-bar').style.width = `${getPercent(counts.in_progress)}%`;
+            document.getElementById('stat-completed-bar').style.width = `${getPercent(counts.completed)}%`;
         }
 
-        async function updateDelivery(id, status) {
+        async function triggerFetchOrders() {
+            const btn = event?.currentTarget;
+            if (btn) { btn.classList.add('animate-spin'); }
+            const res = await fetchWithAuth('/api/mrp/production/fetch_orders/', { method: 'POST' });
+            if (btn) { btn.classList.remove('animate-spin'); }
+            if (res && res.ok) {
+                const data = await res.json();
+                console.log('Auto-synced orders:', data.status);
+                await fetchProductions(); // Refresh the table immediately
+            }
+        }
+
+        async function startProduction(id, isUrgent) {
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/start/`, { method: 'POST' });
+            if (res && res.ok) {
+                fetchProductions();
+            } else if (res) {
+                const data = await res.json();
+                alert(data.error || 'Failed to start production.');
+            }
+        }
+
+        async function completeProduction(id) {
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/complete/`, { method: 'POST' });
+            if (res && res.ok) {
+                fetchProductions();
+            } else if (res) {
+                const data = await res.json();
+                alert(data.error || 'Failed to complete production.');
+            }
+        }
+
+        async function fetchHistory() {
+            const res = await fetchWithAuth('/api/mrp/production/');
+            if (!res) return;
+            const data = await res.json();
+            const historyBody = document.getElementById('history-tbody');
+            historyBody.innerHTML = '';
+
+            const completed = data.filter(p => p.status === 'completed');
+            if (completed.length === 0) {
+                historyBody.innerHTML = '<tr><td colspan="4" class="px-8 py-12 text-center text-slate-400">No completed productions yet.</td></tr>';
+                return;
+            }
+
+            completed.forEach(prod => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-8 py-6 font-bold text-slate-900 text-sm">${prod.product_name}</td>
+                    <td class="px-8 py-6 text-sm text-slate-500">${new Date(prod.start_date).toLocaleDateString()}</td>
+                    <td class="px-8 py-6 text-sm font-bold text-slate-700">${prod.quantity} Units</td>
+                    <td class="px-8 py-6 text-right text-xs font-bold text-slate-400 uppercase">Order #ORD-${prod.order_id}</td>
+                `;
+                historyBody.appendChild(tr);
+            });
+        }
+
+        async function fetchNotifications() {
+            const res = await fetchWithAuth('/api/notifications/');
+            if (!res) return;
+            const data = await res.json();
+            const list = document.getElementById('notif-list');
+            const badge = document.getElementById('notif-badge');
+            
+            list.innerHTML = '';
+            const unread = data.filter(n => !n.is_read);
+            if (unread.length > 0) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
+
+            if (data.length === 0) {
+                list.innerHTML = '<p class="text-center py-10 text-slate-400">No notifications.</p>';
+                return;
+            }
+
+            data.forEach(n => {
+                const div = document.createElement('div');
+                div.className = `p-5 rounded-2xl border ${n.is_read ? 'bg-white border-slate-100' : 'bg-indigo-50/30 border-indigo-100'} transition-all`;
+                div.innerHTML = `
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center ${n.is_read ? 'bg-slate-100 text-slate-400' : 'bg-indigo-100 text-indigo-600'}">
+                            <span class="material-symbols-outlined text-[20px]">notifications</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-900">${n.message}</p>
+                            <p class="text-[10px] text-slate-400 font-medium mt-1 uppercase">${new Date(n.created_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function viewMaterials(id) {
+            document.getElementById('modal-title').innerText = `Order Details & BOM (#ORD-${id})`;
+            const content = document.getElementById('modal-content');
+            content.innerHTML = '<div class="text-center p-10 text-slate-400 animate-pulse">Loading order details...</div>';
+            document.getElementById('bom-modal').classList.remove('hidden');
+
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/required_materials/`);
+            if (!res) { closeModal(); return; }
+            const data = await res.json();
+            
+            if (!res.ok || data.error) {
+                content.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">${data.error || 'Failed to load details.'}</div>`;
+                return;
+            }
+
+            let html = `
+                <div class="p-6 bg-slate-50 border-b border-slate-100 grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Product</p>
+                        <p class="text-sm font-black text-slate-900">${data.product_name}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Quantity</p>
+                        <p class="text-sm font-black text-slate-900">${data.quantity} Units</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</p>
+                        <p class="text-sm font-black text-slate-900 uppercase">${data.priority}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Value</p>
+                        <p class="text-sm font-black text-indigo-600">${parseFloat(data.total_value).toLocaleString()} FCFA</p>
+                    </div>
+                </div>
+                <div class="p-4 bg-white font-bold text-xs text-slate-900 uppercase tracking-widest border-b border-slate-100">Bill of Materials</div>
+            `;
+
+            data.materials.forEach(m => {
+                const diff = m.in_stock - m.quantity_needed;
+                const statusHtml = m.is_sufficient 
+                    ? '<span class="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded uppercase tracking-widest">Sufficient</span>'
+                    : '<span class="text-[10px] font-black text-red-600 bg-red-50 px-2 py-1 rounded uppercase tracking-widest">Shortage</span>';
+
+                html += `
+                <div class="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors border-b border-slate-50">
+                    <div>
+                        <p class="font-black text-slate-900 text-sm uppercase tracking-tighter">${m.material_name}</p>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Required: ${m.quantity_needed} • Available: ${m.in_stock}</p>
+                    </div>
+                    <div class="text-right">
+                        ${statusHtml}
+                        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Balance: ${diff}</p>
+                    </div>
+                </div>`;
+            });
+            content.innerHTML = html;
+        }
+
+        async function loadMaterialsLedger() {
+            const tbody = document.getElementById('ledger-tbody');
+            const empty = document.getElementById('ledger-empty');
+            const table = document.getElementById('ledger-table-container');
+            
+            tbody.innerHTML = '<tr><td colspan="5" class="p-10 text-center animate-pulse">Calculating ledger...</td></tr>';
+            empty.classList.add('hidden');
+            table.classList.remove('hidden');
+
+            const res = await fetchWithAuth('/api/mrp/production/ledger_details/');
+            if (!res) return;
+            const data = await res.json();
+
+            if (data.length === 0) {
+                empty.classList.remove('hidden');
+                table.classList.add('hidden');
+                return;
+            }
+
+            tbody.innerHTML = '';
+            data.forEach(m => {
+                let colorClass = 'text-slate-500';
+                if (m.status === 'surplus') colorClass = 'text-green-600';
+                if (m.status === 'shortage') colorClass = 'text-red-600';
+                if (m.status === 'equal') colorClass = 'text-amber-500';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-6 font-bold text-slate-400 text-xs uppercase">ORD-${m.order_id}</td>
+                    <td class="px-6 py-6 font-bold text-slate-900 text-xs uppercase">${m.product_name}</td>
+                    <td class="px-6 py-6 font-black text-slate-900 text-sm uppercase">${m.material_name}</td>
+                    <td class="px-6 py-6 text-center">
+                        <span class="text-sm text-slate-900 font-black">${m.needed}</span>
+                        <span class="text-xs text-slate-400 font-bold mx-1">/</span>
+                        <span class="text-sm font-bold ${colorClass}">${m.in_stock}</span>
+                    </td>
+                    <td class="px-6 py-6 text-right">
+                        <button onclick="requestRestock('${m.material_name}', ${m.needed}, ${m.order_id})" class="px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">
+                            Restock
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function requestRestock(material_name, needed, order_id) {
+            const res = await fetchWithAuth('/api/mrp/production/request_restock/', {
+                method: 'POST',
+                body: JSON.stringify({ material_name, needed, order_id })
+            });
+            if (res && res.ok) {
+                alert(`Restock notification for ${material_name} sent to inventory team!`);
+            }
+        }
+
+        async function handleDeliveryStatus(id, status) {
             const res = await fetchWithAuth(`/api/mrp/production/${id}/update_delivery/`, {
                 method: 'POST',
                 body: JSON.stringify({ delivery_status: status })
             });
             if (res && res.ok) fetchProductions();
         }
-        async function triggerFetchOrders() {
-            const btn = event.currentTarget;
-            btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">sync</span> Fetching...`;
-            const res = await fetchWithAuth('/api/mrp/production/fetch_orders/', { method: 'POST' });
-            if (res && res.ok) {
-                const data = await res.json();
-                fetchProductions();
-                // small toast effect could go here
-            }
-            btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">sync</span> Fetch Customer Orders`;
-        }
-
-        async function startProduction(id, isUrgent) {
-            if (isUrgent) {
-                if (!confirm('⚡ URGENT ORDER: This will start production immediately, bypassing material checks.\nA warehouse restock request should already be in progress. Continue?')) return;
-            } else {
-                if (!confirm('Start this production run? Materials will be checked and deducted from inventory.')) return;
-            }
-            const res = await fetchWithAuth(`/api/mrp/production/${id}/start/`, { method: 'POST' });
-            if (res && res.ok) {
-                fetchProductions();
-            } else if (res) {
-                const data = await res.json();
-                if (isUrgent) {
-                    // For urgent, a material shortage error from backend may still block — surface it clearly
-                    alert('Backend error: ' + (data.error || 'Could not start. Check backend urgent-bypass logic.'));
-                } else {
-                    alert('Cannot start: ' + (data.error || 'Insufficient materials. Request stock first.'));
-                }
-            }
-        }
-
-        async function requestMaterials(id) {
-            if (!confirm('Send a request to the warehouse to restock missing materials for this order?')) return;
-            const res = await fetchWithAuth(`/api/mrp/production/${id}/request_materials/`, { method: 'POST' });
-            if (res && res.ok) {
-                alert('Warehouse has been notified of the material shortage!');
-            } else if (res) {
-                const data = await res.json();
-                alert('Notice: ' + (data.error || data.status || 'Could not process request.'));
-            }
-        }
-
-        async function completeProduction(id) {
-            // Always check materials before completing — regardless of urgency
-            const matRes = await fetchWithAuth(`/api/mrp/production/${id}/required_materials/`);
-            if (!matRes) return;
-            const materials = await matRes.json();
-
-            const missing = materials.filter(m => !m.is_sufficient);
-            if (missing.length > 0) {
-                const list = missing.map(m => `  • ${m.material_name}: need ${m.quantity_needed}, have ${m.in_stock}`).join('\n');
-                alert(`❌ Cannot complete production — the following materials are still insufficient:\n\n${list}\n\nRequest warehouse restock before completing.`);
-                return;
-            }
-
-            if (!confirm('All materials are available. Mark production as completed?\nThis will add the finished product to inventory.')) return;
-            const res = await fetchWithAuth(`/api/mrp/production/${id}/complete/`, { method: 'POST' });
-            if (res && res.ok) fetchProductions();
-            else if (res) {
-                const data = await res.json();
-                alert('Error: ' + (data.error || 'Could not complete production.'));
-            }
-        }
-
-        async function viewMaterials(id) {
-            document.getElementById('modal-title').innerText = `Required Materials (Prod #${id})`;
-            const content = document.getElementById('modal-content');
-            content.innerHTML = '<div class="text-center p-4 text-slate-500">Loading...</div>';
-            document.getElementById('bom-modal').classList.remove('hidden');
-
-            const res = await fetchWithAuth(`/api/mrp/production/${id}/required_materials/`);
-            if (!res) { closeModal(); return; }
-            const data = await res.json();
-
-            content.innerHTML = '';
-            if (data.length === 0) {
-                content.innerHTML = '<div class="p-4 text-sm text-slate-500">No materials defined for this order.</div>';
-                return;
-            }
-
-            data.forEach(m => {
-                const stockBadge = m.is_sufficient
-                    ? `<span class="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded uppercase tracking-wide">In Stock</span>`
-                    : `<span class="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded uppercase tracking-wide">Shortage</span>`;
-
-                content.innerHTML += `
-                <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-indigo-400">category</span>
-                        </div>
-                        <div>
-                            <p class="font-bold text-slate-900 text-sm">${m.material_name}</p>
-                            <p class="text-xs text-slate-500 mt-0.5">Need: ${m.quantity_needed} | Have: ${m.in_stock}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">${stockBadge}</div>
-                </div>`;
-            });
-        }
-
-        async function openBomModal() {
-            document.getElementById('modal-title').innerText = `Global Bill of Materials`;
-            const content = document.getElementById('modal-content');
-            content.innerHTML = '<div class="text-center p-4 text-slate-500">Loading BOMs...</div>';
-            document.getElementById('bom-modal').classList.remove('hidden');
-
-            const res = await fetchWithAuth('/api/mrp/bom/');
-            if (!res) { closeModal(); return; }
-            const data = await res.json();
-
-            content.innerHTML = '';
-            if (data.length === 0) {
-                content.innerHTML = '<div class="p-4 text-sm text-slate-500">No BOMs found in database.</div>';
-                return;
-            }
-
-            data.forEach(bom => {
-                content.innerHTML += `
-                <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                    <div class="flex flex-col">
-                        <p class="font-bold text-slate-900 text-sm">Product ID: #${bom.product}</p>
-                        <p class="text-xs text-slate-500 mt-0.5">Requires Material #${bom.material}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold text-indigo-700 text-sm bg-indigo-50 px-3 py-1 rounded-lg">${bom.quantity_required} units</p>
-                    </div>
-                </div>`;
-            });
-        }
 
         function closeModal() {
             document.getElementById('bom-modal').classList.add('hidden');
         }
 
-        async function loadMaterialsLedger() {
-            const btn = document.getElementById('ledger-btn');
-            btn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">sync</span> Loading...`;
-            btn.disabled = true;
+        // Search & Filter logic
+        function applyMrpFilters() {
+            const searchVal = document.getElementById('mrp-search').value.toLowerCase();
+            const statusVal = document.getElementById('filter-status').value;
+            const priorityVal = document.getElementById('filter-priority').value;
+            const logisticsVal = document.getElementById('filter-logistics').value;
 
-            const res = await fetchWithAuth('/api/mrp/production/');
-            if (!res) { btn.disabled = false; return; }
-            const productions = await res.json();
+            let visibleCount = 0;
+            document.querySelectorAll('#production-tbody tr').forEach(tr => {
+                const textMatch = tr.innerText.toLowerCase().includes(searchVal);
+                const statusMatch = !statusVal || tr.dataset.status === statusVal;
+                const priorityMatch = !priorityVal || tr.dataset.priority === priorityVal;
+                const logisticsMatch = !logisticsVal || tr.dataset.logistics === logisticsVal;
 
-            if (productions.length === 0) {
-                document.getElementById('ledger-empty').innerHTML = '<p class="p-8 text-center text-sm text-slate-400">No active production orders to aggregate.</p>';
-                btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">table_chart</span> Load Ledger`;
-                btn.disabled = false;
-                return;
-            }
-
-            // Fetch required materials for all productions concurrently
-            const results = await Promise.all(
-                productions.map(p =>
-                    fetchWithAuth(`/api/mrp/production/${p.id}/required_materials/`)
-                        .then(r => r ? r.json() : [])
-                        .then(materials => ({ production: p, materials }))
-                )
-            );
-
-            // Aggregate by material name, tracking highest priority tier that needs each material
-            const priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
-            const ledger = {};
-            results.forEach(({ production, materials }) => {
-                materials.forEach(m => {
-                    if (!ledger[m.material_name]) {
-                        ledger[m.material_name] = { name: m.material_name, total_needed: 0, in_stock: m.in_stock, in_production: false, orders: [], top_priority: production.priority_level };
-                    }
-                    ledger[m.material_name].total_needed += m.quantity_needed;
-                    if (production.status === 'in_progress') ledger[m.material_name].in_production = true;
-                    ledger[m.material_name].orders.push(production.id);
-                    // Keep the highest priority tier seen for this material
-                    const cur = priorityRank[ledger[m.material_name].top_priority] ?? 99;
-                    const next = priorityRank[production.priority_level] ?? 99;
-                    if (next < cur) ledger[m.material_name].top_priority = production.priority_level;
-                });
+                if (textMatch && statusMatch && priorityMatch && logisticsMatch) {
+                    tr.style.display = '';
+                    visibleCount++;
+                } else {
+                    tr.style.display = 'none';
+                }
             });
-
-            const tbody = document.getElementById('ledger-tbody');
-            tbody.innerHTML = '';
-
-            const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
-            const sorted = Object.values(ledger).sort((a, b) => {
-                // Sort by highest priority tier first
-                const aTier = priorityOrder[a.top_priority] ?? 4;
-                const bTier = priorityOrder[b.top_priority] ?? 4;
-                if (aTier !== bTier) return aTier - bTier;
-                // Within same tier: shortages first
-                const aShort = a.in_stock < a.total_needed;
-                const bShort = b.in_stock < b.total_needed;
-                if (aShort && !bShort) return -1;
-                if (!aShort && bShort) return 1;
-                return a.name.localeCompare(b.name);
-            });
-
-            if (sorted.length === 0) {
-                document.getElementById('ledger-empty').classList.remove('hidden');
-                document.getElementById('ledger-empty').innerHTML = '<p class="p-8 text-center text-sm text-slate-400">No BOM materials found for current orders.</p>';
-            } else {
-                document.getElementById('ledger-empty').classList.add('hidden');
-                document.getElementById('ledger-table').classList.remove('hidden');
-
-                sorted.forEach(m => {
-                    const diff = m.in_stock - m.total_needed;
-                    const diffHtml = diff >= 0
-                        ? `<span class="font-bold text-green-600">+${diff}</span>`
-                        : `<span class="font-bold text-red-600">${diff}</span>`;
-
-                    let statusHtml;
-                    if (m.in_production) {
-                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block"></span>In Production</span>`;
-                    } else if (diff >= 0) {
-                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-100">Sufficient</span>`;
-                    } else if (m.in_stock > 0) {
-                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100">Partial</span>`;
-                    } else {
-                        statusHtml = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-100">Shortage</span>`;
-                    }
-
-                    const tierPill = {
-                        urgent: `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 ml-1.5"><span class="w-1 h-1 rounded-full bg-red-600 animate-ping inline-block"></span>Urgent</span>`,
-                        high: `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 ml-1.5">High</span>`,
-                        normal: `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 ml-1.5">Normal</span>`,
-                        low: `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 ml-1.5">Low</span>`
-                    };
-                    const tierLabel = tierPill[m.top_priority] || '';
-
-                    const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-slate-50/80 transition-colors';
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 font-bold text-slate-900 text-sm">${m.name}${tierLabel}</td>
-                        <td class="px-6 py-4 text-sm text-slate-700">${m.total_needed}</td>
-                        <td class="px-6 py-4 text-sm font-semibold ${m.in_stock === 0 ? 'text-red-600' : 'text-slate-800'}">${m.in_stock}</td>
-                        <td class="px-6 py-4 text-sm">${diffHtml}</td>
-                        <td class="px-6 py-4 text-xs text-slate-400">#${m.orders.join(', #')}</td>
-                        <td class="px-6 py-4 text-right">${statusHtml}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">refresh</span> Refresh Ledger`;
-            btn.disabled = false;
+            document.getElementById('total-rows-badge').innerText = `${visibleCount} ITEMS`;
         }
+
+        document.getElementById('ledger-search')?.addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            document.querySelectorAll('#ledger-tbody tr').forEach(tr => {
+                tr.style.display = tr.innerText.toLowerCase().includes(val) ? '' : 'none';
+            });
+        });
     </script>
 </body>
-
 </html>

@@ -209,10 +209,16 @@
                                         <span class="material-symbols-outlined text-[14px]">cancel</span> Rejected
                                     </span>
                                     {% else %}
-                                    <span
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                                        <span class="material-symbols-outlined text-[14px]">task_alt</span> Completed
-                                    </span>
+                                    <div class="flex flex-col gap-1 items-start">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                                            <span class="material-symbols-outlined text-[14px]">task_alt</span> Completed
+                                        </span>
+                                        {% if order.delivery_status and order.delivery_status != 'pending' %}
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 uppercase tracking-widest">
+                                            <span class="material-symbols-outlined text-[12px]">local_shipping</span> {{ order.delivery_status }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4 text-right">

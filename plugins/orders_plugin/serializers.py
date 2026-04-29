@@ -63,11 +63,25 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     customer_name = serializers.ReadOnlyField(source='customer.username')
     customer_grade = serializers.ReadOnlyField(source='customer.grade')
+    delivery_status = serializers.SerializerMethodField()
+
+    def get_delivery_status(self, obj):
+        try:
+            from plugins.mrp_production_plugin.models import Production
+            prods = Production.objects.filter(item__order=obj)
+            if prods.exists():
+                statuses = set(prods.values_list('delivery_status', flat=True))
+                if 'pending' in statuses: return 'pending'
+                if 'shipped' in statuses: return 'shipped'
+                if 'delivered' in statuses: return 'delivered'
+        except ImportError:
+            pass
+        return 'pending'
 
     class Meta:
         model = Order
         fields = [
             'id', 'customer', 'customer_name', 'customer_grade', 'status', 'priority', 
             'total_amount', 'discount_applied', 'created_at', 
-            'updated_at', 'expected_delivery_date', 'items'
+            'updated_at', 'expected_delivery_date', 'items', 'delivery_status'
         ]

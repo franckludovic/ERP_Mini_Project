@@ -720,24 +720,14 @@ def customer_dashboard_template(request):
     user = _require_session_user(request)
 
     if not user:
-        context = {
-            'user': {
-                'username': 'Demo User', 'email': 'demo@nexus.com',
-                'role': 'customer', 'grade': '1st Grade',
-                'transaction_count': 4, 'total_spent': 2100000,
-                'is_premium': False,
-            },
-            'order_progress': 57,
-            'spend_progress': 70,
-            'orders': [],
-        }
-    else:
-        context = {
-            'user': _get_user_context(user),
-            'order_progress': min(int(user.transaction_count / 7 * 100), 100),
-            'spend_progress': min(int(user.total_spent / 3_000_000 * 100), 100),
-            'orders': [],  # wire to: user.orders.order_by('-created_at')[:10]
-        }
+        return redirect('login-template')
+    
+    context = {
+        'user': _get_user_context(user),
+        'order_progress': min(int(user.transaction_count / 7 * 100), 100),
+        'spend_progress': min(int(user.total_spent / 3_000_000 * 100), 100),
+        'orders': [],  # wire to: user.orders.order_by('-created_at')[:10]
+    }
 
     return render(request, 'customer-dashboard.html', context)
 
