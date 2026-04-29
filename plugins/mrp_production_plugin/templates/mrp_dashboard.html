@@ -237,10 +237,8 @@
                 </div>
 
                 <!-- NOTIFICATIONS TAB -->
-                <div id="tab-notifications" class="tab-content hidden space-y-6">
-                    <div class="max-w-3xl mx-auto space-y-4" id="notif-list">
-                        <!-- Injected via JS -->
-                    </div>
+                <div id="tab-notifications" class="tab-content hidden h-[calc(100vh-160px)] w-full">
+                    <iframe src="/notifications/page/?embed=true" class="w-full h-full border-none rounded-2xl" id="notif-iframe"></iframe>
                 </div>
 
             </div>
@@ -278,7 +276,6 @@
             // Auto-fetch validated orders on load
             await triggerFetchOrders();
             fetchProductions();
-            fetchNotifications();
         }
 
         document.addEventListener('DOMContentLoaded', initDashboard);
@@ -507,40 +504,6 @@
             });
         }
 
-        async function fetchNotifications() {
-            const res = await fetchWithAuth('/api/notifications/');
-            if (!res) return;
-            const data = await res.json();
-            const list = document.getElementById('notif-list');
-            const badge = document.getElementById('notif-badge');
-            
-            list.innerHTML = '';
-            const unread = data.filter(n => !n.is_read);
-            if (unread.length > 0) badge.classList.remove('hidden');
-            else badge.classList.add('hidden');
-
-            if (data.length === 0) {
-                list.innerHTML = '<p class="text-center py-10 text-slate-400">No notifications.</p>';
-                return;
-            }
-
-            data.forEach(n => {
-                const div = document.createElement('div');
-                div.className = `p-5 rounded-2xl border ${n.is_read ? 'bg-white border-slate-100' : 'bg-indigo-50/30 border-indigo-100'} transition-all`;
-                div.innerHTML = `
-                    <div class="flex gap-4">
-                        <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center ${n.is_read ? 'bg-slate-100 text-slate-400' : 'bg-indigo-100 text-indigo-600'}">
-                            <span class="material-symbols-outlined text-[20px]">notifications</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-bold text-slate-900">${n.message}</p>
-                            <p class="text-[10px] text-slate-400 font-medium mt-1 uppercase">${new Date(n.created_at).toLocaleString()}</p>
-                        </div>
-                    </div>
-                `;
-                list.appendChild(div);
-            });
-        }
 
         async function viewMaterials(id) {
             document.getElementById('modal-title').innerText = `Order Details & BOM (#ORD-${id})`;

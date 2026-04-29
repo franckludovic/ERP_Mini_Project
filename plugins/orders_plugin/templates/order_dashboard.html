@@ -60,10 +60,10 @@
                 <span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
                 <span>Inventory</span>
             </a>
-            <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="#">
+            <button onclick="switchTab('notifications')" class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium">
                 <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
                 <span>Notifications</span>
-            </a>
+            </button>
         </nav>
         <div class="mt-auto p-4 border-t">
             <a href="{% url 'logout' %}" class="flex items-center gap-3 text-red-600 hover:text-red-700 text-sm font-medium">
@@ -76,12 +76,12 @@
         <header
             class="flex justify-between items-center h-16 w-full px-8 sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 shadow-sm">
             <div class="flex items-center gap-4">
-                <h2 class="text-lg font-bold tracking-tight text-slate-900">Order Management</h2>
+                <h2 id="page-title" class="text-lg font-bold tracking-tight text-slate-900">Order Management</h2>
                 <span
                     class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>
             </div>
         </header>
-        <div class="p-8 max-w-7xl mx-auto space-y-8">
+        <div id="dashboard-content" class="p-8 max-w-7xl mx-auto space-y-8">
             <!-- Main Analytics Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                 <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
@@ -224,17 +224,17 @@
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex gap-2 justify-end items-center">
                                         {% if order.status == 'pending' %}
-                                        <button onclick="handleOrderAction({{ order.id }}, 'validate_order')"
+                                        <button onclick="handleOrderAction('{{ order.id }}', 'validate_order')"
                                             class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-indigo-700 transition-colors">Validate</button>
-                                        <button onclick="handleOrderAction({{ order.id }}, 'reject_order')"
+                                        <button onclick="handleOrderAction('{{ order.id }}', 'reject_order')"
                                             class="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 text-xs font-bold rounded-lg shadow-sm hover:bg-red-100 transition-colors">Reject</button>
                                         {% endif %}
                                         {% if order.priority != 'urgent' and order.status != 'completed' and order.status != 'rejected' %}
-                                        <button onclick="handleOrderAction({{ order.id }}, 'mark_urgent')"
+                                        <button onclick="handleOrderAction('{{ order.id }}', 'mark_urgent')"
                                             class="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-lg shadow-sm hover:bg-rose-100 transition-colors">Mark
                                             Urgent</button>
                                         {% endif %}
-                                        <button onclick="viewOrderDetail({{ order.id }})"
+                                        <button onclick="viewOrderDetail('{{ order.id }}')"
                                             class="px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-lg shadow-sm hover:bg-slate-200 transition-colors">Details</button>
                                         {% if order.status == 'completed' or order.status == 'rejected' or order.status == 'validated' and order.priority == 'urgent' %}
                                         <button class="p-1.5 text-slate-400 hover:text-slate-600 transition-colors">
@@ -254,6 +254,9 @@
                     </table>
                 </div>
             </div>
+        </div>
+        <div id="notifications-content" class="hidden h-[calc(100vh-64px)] w-full">
+            <iframe src="/notifications/page/?embed=true" class="w-full h-full border-none"></iframe>
         </div>
         </div>
     </main>
@@ -327,6 +330,38 @@
     </div>
 
     <script>
+        function switchTab(tabId) {
+            const dashboardContent = document.getElementById('dashboard-content');
+            const notificationsContent = document.getElementById('notifications-content');
+            const pageTitle = document.getElementById('page-title');
+            
+            if (tabId === 'notifications') {
+                dashboardContent.classList.add('hidden');
+                notificationsContent.classList.remove('hidden');
+                pageTitle.textContent = 'Notifications';
+            } else {
+                dashboardContent.classList.remove('hidden');
+                notificationsContent.classList.add('hidden');
+                pageTitle.textContent = 'Order Management';
+            }
+            
+            // Update active link styles
+            document.querySelectorAll('aside nav button, aside nav a').forEach(el => {
+                el.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-bold');
+                el.classList.add('text-slate-600');
+            });
+            
+            if (tabId === 'notifications') {
+                const btn = document.querySelector('button[onclick*="notifications"]');
+                btn.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
+                btn.classList.remove('text-slate-600');
+            } else {
+                const link = document.querySelector('a[href*="order_dashboard"]');
+                link.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
+                link.classList.remove('text-slate-600');
+            }
+        }
+
         function closeModal() {
             document.getElementById('orderDetailModal').classList.add('hidden');
         }
@@ -381,20 +416,50 @@
         }
 
         function handleOrderAction(orderId, action) {
-            if (!confirm(`Are you sure you want to ${action.split('_')[0]} this order?`)) return;
+            if (action === 'reject_order') {
+                openRejectModal(orderId);
+                return;
+            }
 
+            if (!confirm(`Are you sure you want to ${action.split('_')[0]} this order?`)) return;
+            
+            submitOrderAction(orderId, action);
+        }
+
+        let currentRejectOrderId = null;
+        function openRejectModal(orderId) {
+            currentRejectOrderId = orderId;
+            document.getElementById('rejectModal').classList.remove('hidden');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.add('hidden');
+            document.getElementById('rejectReason').value = '';
+        }
+
+        function submitRejection() {
+            const reason = document.getElementById('rejectReason').value;
+            if (!reason) {
+                alert('Please provide a reason for rejection.');
+                return;
+            }
+            submitOrderAction(currentRejectOrderId, 'reject_order', { reason });
+            closeRejectModal();
+        }
+
+        function submitOrderAction(orderId, action, extraData = {}) {
             fetch(`/api/orders/orders/${orderId}/${action}/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ reason: "Admin action from dashboard" })
+                body: JSON.stringify({ reason: "Admin action from dashboard", ...extraData })
             }).then(response => {
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    alert('Failed to process action. You may not have permission.');
+                    response.json().then(data => alert(data.error || 'Action failed'));
                 }
             });
         }
@@ -421,6 +486,31 @@
             totalRowsCount.textContent = visibleCount;
         });
     </script>
-</body>
+    <!-- Rejection Modal -->
+    <div id="rejectModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div class="p-8">
+                <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6">
+                    <span class="material-symbols-outlined text-3xl">cancel</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Reject Order</h3>
+                <p class="text-slate-500 mb-8">Please provide a reason for rejecting this order. The customer will receive this message.</p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Rejection Reason</label>
+                        <textarea id="rejectReason" rows="4" placeholder="e.g. Insufficient stock, Invalid grade compliance..." 
+                            class="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-red-500 transition-all placeholder:text-slate-300"></textarea>
+                    </div>
+                </div>
 
+                <div class="flex gap-4 mt-10">
+                    <button onclick="closeRejectModal()" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
+                    <button onclick="submitRejection()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200">Confirm Rejection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
 </html>

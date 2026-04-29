@@ -111,6 +111,17 @@ class OrderViewSet(viewsets.ModelViewSet):
                 'subtotal': float(order_item.subtotal)
             })
         
+        # Trigger notification for admins
+        from plugins.notifications.utils import create_notification
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        admins = User.objects.filter(role='admin') | User.objects.filter(is_superuser=True)
+        for admin in admins.distinct():
+            create_notification('ORDER_PLACED', admin.id, {
+                'order_id': order.id,
+                'username': user.username
+            })
+
         response_data = {
             'success': True,
             'order_id': order.id,
@@ -129,7 +140,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         if discount_percentage > 0:
             response_data['message'] = f'Order placed successfully! {discount_percentage}% discount applied as premium customer.'
-        
+
         return Response(response_data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
@@ -150,6 +161,21 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         order.status = 'validated'
         order.save()
+
+        # Trigger notification for customer
+        from plugins.notifications.utils import create_notification
+        create_notification('ORDER_VALIDATED', order.customer.id, {
+            'order_id': order.id
+        })
+
+        # Trigger notification for production managers
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        pm_users = User.objects.filter(role='production_manager')
+        for pm in pm_users:
+            create_notification('ORDER_VALIDATED_PM', pm.id, {
+                'order_id': order.id
+            })
         
         return Response({
             'success': True,
@@ -199,9 +225,16 @@ class OrderViewSet(viewsets.ModelViewSet):
                 'error': f'Cannot reject order with status: {order.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        reason = request.data.get('reason', 'No reason provided')
+        reason = request.data.get('reason', 'No specific reason provided')
         order.status = 'rejected'
         order.save()
+
+        # Trigger notification for customer
+        from plugins.notifications.utils import create_notification
+        create_notification('ORDER_REJECTED', order.customer.id, {
+            'order_id': order.id,
+            'reason': reason
+        })
         
         return Response({
             'success': True,

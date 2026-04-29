@@ -31,9 +31,10 @@ urlpatterns = [
     path('admin/',            admin.site.urls),
     path('api/users/',        include('plugins.users_plugin.urls')),
     path('api/orders/',       include('plugins.orders_plugin.urls')),
-    path('api/notifications/',include('plugins.notifications_plugin.urls')),
+    path('api/notifications/',include('plugins.notifications.urls')),
     path('api/mrp/',          include('plugins.mrp_production_plugin.urls')),
     path('api/inventory/',    include('plugins.inventory_plugin.urls')),
 
     path('inventory_dashboard/', include('plugins.inventory_plugin.urls_dashboard')),
+    path('notifications/', include('plugins.notifications.urls')),
 ]

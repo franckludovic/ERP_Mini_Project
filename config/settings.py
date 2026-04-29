@@ -43,7 +43,7 @@ INSTALLED_APPS = [
 
     'plugins.users_plugin',
     'plugins.orders_plugin',
-    'plugins.notifications_plugin',
+    'plugins.notifications',
     'plugins.mrp_production_plugin',
     'plugins.inventory_plugin',
 ]
@@ -143,3 +143,4 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 AUTH_USER_MODEL = 'users_plugin.User'
+X_FRAME_OPTIONS = 'SAMEORIGIN'

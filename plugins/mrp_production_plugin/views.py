@@ -60,6 +60,13 @@ class ProductionViewSet(viewsets.ModelViewSet):
             product.quantity_in_stock += quantity
             product.save()
 
+        # Trigger notification for customer
+        if hasattr(production, 'item') and production.item and production.item.order:
+            from plugins.notifications.utils import create_notification
+            create_notification('PRODUCTION_COMPLETED', production.item.order.customer.id, {
+                'order_id': production.item.order.id
+            })
+
         return Response({'status': 'Production completed, order status updated to completed, and inventory updated'})
 
     @action(detail=True, methods=['post'])
@@ -154,13 +161,14 @@ class ProductionViewSet(viewsets.ModelViewSet):
                 if pm.material.quantity_in_stock < (pm.quantity_required * order_quantity):
                     partial_shortage.append(pm.material)
             if partial_shortage:
-                from plugins.notifications_plugin.models import Notification
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
+                from plugins.notifications.utils import create_notification
                 admin_user = User.objects.filter(is_superuser=True).first()
                 if admin_user:
-                    msg = f"URGENT Production #{production.id} started. Shortage for full run: " + ", ".join([m.name for m in partial_shortage])
-                    Notification.objects.create(user=admin_user, message=msg)
+                    create_notification('PRODUCTION_STARTED', admin_user.id, {
+                        'prod_id': production.id,
+                        'order_id': production.item.order.id,
+                        'shortage': ", ".join([m.name for m in partial_shortage])
+                    })
                 
         # Deduct inventory
         for pm in pms:
@@ -170,6 +178,18 @@ class ProductionViewSet(viewsets.ModelViewSet):
             
         production.status = 'in_progress'
         production.save()
+
+        # Trigger notification for admin on start
+        from plugins.notifications.utils import create_notification
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        admin_user = User.objects.filter(is_superuser=True).first()
+        if admin_user:
+            create_notification('PRODUCTION_STARTED', admin_user.id, {
+                'prod_id': production.id,
+                'order_id': production.item.order.id
+            })
+
         return Response({'status': 'Production started. Stock deducted.'})
 
     @action(detail=False, methods=['get'])
@@ -214,7 +234,7 @@ class ProductionViewSet(viewsets.ModelViewSet):
         needed = request.data.get('needed')
         order_id = request.data.get('order_id')
         
-        from plugins.notifications_plugin.models import Notification
+        from plugins.notifications.models import Notification
         from django.contrib.auth import get_user_model
         User = get_user_model()
         admin_user = User.objects.filter(is_superuser=True).first()
