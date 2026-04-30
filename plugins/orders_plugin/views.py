@@ -345,6 +345,8 @@ def dashboard_view(request):
     except ImportError:
         orders = Order.objects.all().select_related('customer').order_by('-created_at')[:20]
     
+    base_template = 'admin_dashboard/partial.html' if request.headers.get('HX-Request') else 'admin_dashboard/base.html'
+    
     context = {
         'total_active_orders': total_active_orders,
         'urgent_orders': urgent_orders,
@@ -356,6 +358,7 @@ def dashboard_view(request):
         'grade_2_count': grade_2_count,
         'grade_3_count': grade_3_count,
         'orders': orders,
+        'base_template': base_template,
     }
     
     return render(request, 'order_dashboard.html', context)

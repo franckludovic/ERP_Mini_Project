@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Nexus ERP - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #fcf8ff;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* HTMX indicator */
+        #main-content {
+            transition: opacity 0.2s ease-in-out;
+        }
+        #main-content.htmx-request {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_rgba(15,23,42,0.02)] flex flex-col p-4 gap-2 z-50">
+    <div class="mb-8 px-4">
+        <h1 class="text-xl font-black text-indigo-600">Nexus ERP</h1>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Admin Console</p>
+    </div>
+    <nav class="flex-1 flex flex-col gap-1" id="sidebar-nav" 
+         hx-headers='{"Cache-Control": "no-cache"}' 
+         hx-sync="this:replace"
+         hx-indicator="#main-content">
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium {% if request.resolver_match.url_name == 'admin_users' %}bg-indigo-50 text-indigo-700 font-semibold{% endif %}" 
+           href="{% url 'admin_users' %}"
+           hx-get="{% url 'admin_users' %}"
+           hx-target="#main-content"
+           hx-push-url="true"
+           hx-on::after-request="updateActiveLink(this)">
+            <span class="material-symbols-outlined" style="{% if request.resolver_match.url_name == 'admin_users' %}font-variation-settings: 'FILL' 1;{% endif %}">group</span>
+            <span>User Management</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium {% if request.resolver_match.url_name == 'admin_orders' %}bg-indigo-50 text-indigo-700 font-semibold{% endif %}" 
+           href="{% url 'admin_orders' %}"
+           hx-get="{% url 'admin_orders' %}"
+           hx-target="#main-content"
+           hx-push-url="true"
+           hx-on::after-request="updateActiveLink(this)">
+            <span class="material-symbols-outlined" style="{% if request.resolver_match.url_name == 'admin_orders' %}font-variation-settings: 'FILL' 1;{% endif %}">shopping_cart</span>
+            <span>Orders</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium {% if request.resolver_match.url_name == 'admin_inventory' %}bg-indigo-50 text-indigo-700 font-semibold{% endif %}" 
+           href="{% url 'admin_inventory' %}"
+           hx-get="{% url 'admin_inventory' %}"
+           hx-target="#main-content"
+           hx-push-url="true"
+           hx-on::after-request="updateActiveLink(this)">
+            <span class="material-symbols-outlined" style="{% if request.resolver_match.url_name == 'admin_inventory' %}font-variation-settings: 'FILL' 1;{% endif %}">inventory_2</span>
+            <span>Inventory</span>
+        </a>
+        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium {% if request.resolver_match.url_name == 'admin_notifications' %}bg-indigo-50 text-indigo-700 font-semibold{% endif %}" 
+           href="{% url 'admin_notifications' %}"
+           hx-get="{% url 'admin_notifications' %}"
+           hx-target="#main-content"
+           hx-push-url="true"
+           hx-on::after-request="updateActiveLink(this)">
+            <span class="material-symbols-outlined" style="{% if request.resolver_match.url_name == 'admin_notifications' %}font-variation-settings: 'FILL' 1;{% endif %}">notifications</span>
+            <span>Notifications</span>
+        </a>
+    </nav>
+    <div class="mt-auto p-4 border-t">
+        <a href="{% url 'logout' %}" class="flex items-center gap-3 text-red-600 hover:text-red-700 text-sm font-medium">
+            <span class="material-symbols-outlined">logout</span>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>
+
+<main class="ml-64 min-h-screen" id="main-content">
+    {% block content %}
+    <div class="flex flex-col items-center justify-center h-screen text-slate-400">
+        <span class="material-symbols-outlined text-6xl mb-4 animate-pulse">dashboard</span>
+        <h2 class="text-xl font-bold">Select a section from the sidebar</h2>
+    </div>
+    {% endblock %}
+</main>
+
+<script>
+    function updateActiveLink(el) {
+        // Remove active classes from all links
+        document.querySelectorAll('#sidebar-nav a').forEach(link => {
+            link.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-semibold');
+            link.classList.add('text-slate-600');
+            const icon = link.querySelector('.material-symbols-outlined');
+            if (icon) icon.style.fontVariationSettings = "'FILL' 0";
+        });
+        
+        // Add active classes to the clicked link
+        el.classList.add('bg-indigo-50', 'text-indigo-700', 'font-semibold');
+        el.classList.remove('text-slate-600');
+        const activeIcon = el.querySelector('.material-symbols-outlined');
+        if (activeIcon) activeIcon.style.fontVariationSettings = "'FILL' 1";
+    }
+
+    // Handle back/forward buttons
+    window.onpopstate = function(event) {
+        // HTMX handles this automatically if push-url is used, 
+        // but we might need to update the sidebar active state.
+        const currentPath = window.location.pathname;
+        const activeLink = document.querySelector(`#sidebar-nav a[href="${currentPath}"]`);
+        if (activeLink) updateActiveLink(activeLink);
+    };
+</script>
+
+</body>
+</html>

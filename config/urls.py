@@ -35,6 +35,11 @@ urlpatterns = [
     path('api/mrp/',          include('plugins.mrp_production_plugin.urls')),
     path('api/inventory/',    include('plugins.inventory_plugin.urls')),
 
-    path('inventory_dashboard/', include('plugins.inventory_plugin.urls_dashboard')),
-    path('notifications/', include('plugins.notifications.urls')),
-]
+    path('admin_dashboard/', include([
+        path('', RedirectView.as_view(url='users/'), name='admin_dashboard'),
+        path('users/', include('plugins.users_plugin.urls_admin')),
+        path('orders/', include('plugins.orders_plugin.urls_admin')),
+        path('inventory/', include('plugins.inventory_plugin.urls_admin')),
+        path('notifications/', include('plugins.notifications.urls_admin')),
+    ])),
+]

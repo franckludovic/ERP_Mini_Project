@@ -1,104 +1,27 @@
-<!DOCTYPE html>
-<html class="light" lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Nexus ERP - User Management</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "error-container": "#ffdad6",
-                        "on-error-container": "#93000a",
-                    },
-                    "fontFamily": {
-                        "body-md": ["Inter"],
-                    }
-                },
-            },
-        }
-    </script>
-    <style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            display: inline-block;
-            line-height: 1;
-            vertical-align: middle;
-        }
-        body {
-            background-color: #fcf8ff;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-        }
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-    </style>
-</head>
-<body class="font-body-md text-on-surface">
+{% extends base_template %}
 
-<aside class="h-screen w-64 fixed left-0 top-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_rgba(15,23,42,0.02)] flex flex-col p-4 gap-2 z-50">
-    <div class="mb-8 px-4">
-        <h1 class="text-xl font-black text-indigo-600">Nexus ERP</h1>
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Enterprise Suite</p>
-    </div>
-    <nav class="flex-1 flex flex-col gap-1">
-        <a class="flex items-center gap-3 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-['Inter'] text-sm font-semibold" href="{% url 'user-management' %}">
-            <span class="material-symbols-outlined" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
-            <span>User Management</span>
-        </a>
-        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="{% url 'order_dashboard' %}">
-            <span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
-            <span>Orders</span>
-        </a>
-        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="{% url 'inventory_dashboard' %}">
-            <span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
-            <span>Inventory</span>
-        </a>
-        <a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium" href="#">
-            <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
-            <span>Notifications</span>
-        </a>
-    </nav>
-    <div class="mt-auto p-4 border-t">
-        <a href="{% url 'logout' %}" class="flex items-center gap-3 text-red-600 hover:text-red-700 text-sm font-medium">
-            <span class="material-symbols-outlined">logout</span>
-            <span>Logout</span>
-        </a>
-    </div>
-</aside>
-
-<main class="ml-64 min-h-screen">
-    <header class="flex justify-between items-center h-16 w-full px-8 sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 shadow-sm">
-        <div class="flex items-center gap-4">
-            <h2 class="text-lg font-bold tracking-tight text-slate-900">User Management</h2>
-            <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Admin Control</span>
-        </div>
-        <div class="flex items-center gap-4">
-            <button onclick="openCreateModal()" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-indigo-700 transition-all">
+{% block content %}
+<main class="min-h-screen">
+    <div id="users-content" 
+         class="p-8 max-w-7xl mx-auto space-y-8" 
+         hx-get="{% url 'admin_users' %}" 
+         hx-select="#users-content" 
+         hx-swap="outerHTML">
+        <!-- Unified Header Area inside content -->
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-4">
+                <h2 class="text-2xl font-bold tracking-tight text-slate-900">User Management</h2>
+                <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Admin Control</span>
+                <button hx-get="{% url 'admin_users' %}" hx-target="#main-content" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-slate-50" title="Refresh">
+                    <span class="material-symbols-outlined text-[20px]">refresh</span>
+                </button>
+            </div>
+            <button onclick="openCreateModal()" class="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all">
                 <span class="material-symbols-outlined text-sm">person_add</span>
                 Create User
             </button>
         </div>
-    </header>
 
-    <div class="p-8 max-w-7xl mx-auto space-y-8">
         <div class="bg-white rounded-xl shadow-[0px_1px_3px_rgba(15,23,42,0.05),0px_10px_15px_-3px_rgba(15,23,42,0.03)] border border-slate-100 overflow-hidden">
             <div class="p-6 border-b border-slate-50">
                 <h3 class="text-lg font-bold text-slate-900">System Users</h3>
@@ -187,6 +110,7 @@
         <p class="text-sm text-slate-500 mb-6">Set up a new system account.</p>
         
         <form id="createUserForm" class="space-y-4">
+            {% csrf_token %}
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label>
                 <input type="text" name="username" required class="w-full rounded-lg border-slate-200 text-sm focus:ring-indigo-500">
@@ -274,7 +198,7 @@
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify({ duration: parseInt(duration) })
         });
-        if(res.ok) window.location.reload();
+        if(res.ok) htmx.ajax('GET', '{% url "admin_users" %}', {target:'#main-content', swap:'innerHTML'});
         else alert("Error banning user");
     }
 
@@ -284,7 +208,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
         });
-        if(res.ok) window.location.reload();
+        if(res.ok) htmx.ajax('GET', '{% url "admin_users" %}', {target:'#main-content', swap:'innerHTML'});
     }
 
     async function deleteUser(userId) {
@@ -293,7 +217,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
         });
-        if(res.ok) window.location.reload();
+        if(res.ok) htmx.ajax('GET', '{% url "admin_users" %}', {target:'#main-content', swap:'innerHTML'});
         else alert("Error deleting user");
     }
 
@@ -301,31 +225,37 @@
     const roleSelect = document.querySelector('select[name="role"]');
     const gradeContainer = document.getElementById('gradeContainer');
     function toggleGradeField() {
-        if (roleSelect.value === 'customer') {
+        if (roleSelect && roleSelect.value === 'customer') {
             gradeContainer.style.opacity = '1';
             gradeContainer.style.pointerEvents = 'auto';
-        } else {
+        } else if (gradeContainer) {
             gradeContainer.style.opacity = '0.3';
             gradeContainer.style.pointerEvents = 'none';
         }
     }
-    roleSelect.addEventListener('change', toggleGradeField);
-    toggleGradeField();
+    if (roleSelect) {
+        roleSelect.addEventListener('change', toggleGradeField);
+        toggleGradeField();
+    }
 
-    document.getElementById('createUserForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const data = Object.fromEntries(formData.entries());
-        fetch('{% url "admin-create-user" %}', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify(data)
-        }).then(response => {
-            if(response.ok) window.location.reload();
-            else response.json().then(err => alert('Error: ' + JSON.stringify(err)));
+    const createUserForm = document.getElementById('createUserForm');
+    if (createUserForm) {
+        createUserForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            fetch('{% url "admin-create-user" %}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify(data)
+            }).then(response => {
+                if(response.ok) {
+                    htmx.ajax('GET', '{% url "admin_users" %}', {target:'#main-content', swap:'innerHTML'});
+                    closeModal('createUserModal');
+                }
+                else response.json().then(err => alert('Error: ' + JSON.stringify(err)));
+            });
         });
-    });
+    }
 </script>
-
-</body>
-</html>
+{% endblock %}

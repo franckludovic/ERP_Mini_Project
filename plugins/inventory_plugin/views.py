@@ -279,6 +279,8 @@ def inventory_dashboard_view(request):
     if not admin_user or admin_user.role != 'admin':
         return redirect('login-template')
     
+    base_template = 'admin_dashboard/partial.html' if request.headers.get('HX-Request') else 'admin_dashboard/base.html'
     return render(request, 'inventory_dashboard.html', {
         'admin': _get_user_context(admin_user),
-    })
+        'base_template': base_template,
+    })

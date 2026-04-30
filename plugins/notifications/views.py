@@ -110,7 +110,9 @@ from django.contrib.auth.decorators import login_required
 @login_required
 @xframe_options_sameorigin
 def notifications_page(request):
+    base_template = 'admin_dashboard/partial.html' if request.headers.get('HX-Request') else 'admin_dashboard/base.html'
     return render(request, "notifications/notifications.html", {
         "user_id": request.user.id,
-        "username": request.user.username
-    })
+        "username": request.user.username,
+        "base_template": base_template,
+    })

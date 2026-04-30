@@ -661,7 +661,7 @@ def login_view(request):
         
         # Role-based redirection
         if user.role == 'admin':
-            return redirect('order_dashboard')
+            return redirect('admin_dashboard')
         elif user.role == 'production_manager':
             return redirect('mrp_dashboard')
         else:
@@ -741,6 +741,10 @@ def profile_settings_view(request):
     return render(request, 'profile-settings.html', {'user': _get_user_context(user)})
 
 
+def admin_dashboard_root(request):
+    """Root redirect for admin dashboard"""
+    return redirect('admin_users')
+
 def user_management_template(request):
     """Render the User Management HTML page for Admins"""
     admin_user = _require_session_user(request)
@@ -750,11 +754,14 @@ def user_management_template(request):
     users = User.objects.all().order_by('-date_joined')
     user_data = [_get_user_context(u) for u in users]
 
+    base_template = 'admin_dashboard/partial.html' if request.headers.get('HX-Request') else 'admin_dashboard/base.html'
+
     return render(request, 'user-management.html', {
         'admin': _get_user_context(admin_user),
         'users': user_data,
         'role_choices': User.ROLE_CHOICES,
         'grade_choices': User.GRADE_CHOICES,
+        'base_template': base_template,
     })
 
 from django.utils import timezone
