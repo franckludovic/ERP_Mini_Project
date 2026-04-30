@@ -45,6 +45,13 @@ def user_notifications(request, user_id=None):
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def unread_count(request):
+    count = Notification.objects.filter(user=request.user, is_read=False).count()
+    return Response({"count": count})
+
+
 # -------------------------
 # MARK AS READ
 # -------------------------

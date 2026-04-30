@@ -21,7 +21,8 @@ class Production(models.Model):
     )
     # Refactored to link to specific order item
     item = models.OneToOneField(OrderItem, on_delete=models.CASCADE, related_name='production')
-    status = models.CharField(max_length=20, default='pending')
+    status = models.CharField(max_length=20, default='pending') # pending, scheduled, in_progress, completed
     priority_level = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='low')
     delivery_status = models.CharField(max_length=20, choices=DELIVERY_STATUS_CHOICES, default='pending')
     start_date = models.DateTimeField(auto_now_add=True)
+    scheduled_date = models.DateTimeField(null=True, blank=True)

@@ -5,6 +5,10 @@ from .models import BOM, Production
 from .serializers import BOMSerializer, ProductionSerializer
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from plugins.notifications.utils import create_notification
+
+User = get_user_model()
 
 
 def _pm_base(request):
@@ -87,7 +91,6 @@ class ProductionViewSet(viewsets.ModelViewSet):
 
         # Trigger notification for customer
         if hasattr(production, 'item') and production.item and production.item.order:
-            from plugins.notifications.utils import create_notification
             create_notification('PRODUCTION_COMPLETED', production.item.order.customer.id, {
                 'order_id': production.item.order.id
             })
@@ -106,16 +109,62 @@ class ProductionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def fetch_orders(self, request):
-        from plugins.orders_plugin.models import Order, OrderItem
-        # Get all items from validated orders that don't have a production run yet
-        items = OrderItem.objects.filter(order__status='validated', production__isnull=True)
-        count = 0
-        for item in items:
-            # Use order priority as default
-            priority = item.order.priority
-            Production.objects.create(item=item, priority_level=priority)
-            count += 1
-        return Response({'status': f'Fetched and created {count} production orders.'})
+        try:
+            from plugins.orders_plugin.models import Order, OrderItem
+            # Get all items from validated orders that don't have a production run yet
+            items = OrderItem.objects.filter(order__status='validated', production__isnull=True)
+            count = 0
+            for item in items:
+                # Use order priority as default
+                priority = item.order.priority
+                # Ensure priority is valid for Production model
+                if priority not in ['low', 'normal', 'high', 'urgent']:
+                    priority = 'normal'
+                
+                # Double check to prevent IntegrityError if one-to-one exists
+                if not hasattr(item, 'production'):
+                    Production.objects.create(item=item, priority_level=priority)
+                    count += 1
+            
+            # Trigger auto-start check for scheduled productions
+            self._check_scheduled_starts()
+            
+            return Response({'status': f'Fetched and created {count} production orders.'})
+        except Exception as e:
+            print(f"Error in fetch_orders: {str(e)}") # This will show in the terminal logs
+            return Response({'error': f'Failed to fetch orders: {str(e)}'}, status=400)
+
+    def _check_scheduled_starts(self):
+        """Internal helper to start productions that reached their scheduled time"""
+        from django.utils import timezone
+        now = timezone.now()
+        scheduled = Production.objects.filter(status='scheduled', scheduled_date__lte=now)
+        for prod in scheduled:
+            prod.status = 'in_progress'
+            prod.save()
+            # Notify
+            create_notification(
+                user=prod.item.order.customer,
+                title="Production Started!",
+                message=f"Scheduled production for your order item {prod.item.product_name} has automatically started.",
+                category="PRODUCTION_STARTED"
+            )
+            # Notify Admin
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            admins = User.objects.filter(is_superuser=True)
+            for admin in admins:
+                create_notification(
+                    user=admin,
+                    title="Auto-Production Start",
+                    message=f"Production for {prod.item.product_name} (Order #{prod.item.order.id}) has automatically started as scheduled.",
+                    category="PRODUCTION_STARTED"
+                )
+
+    def get_queryset(self):
+        # Trigger check on every list request for "automatic" feel
+        self._check_scheduled_starts()
+        return Production.objects.all().order_by('-start_date')
 
     @action(detail=True, methods=['get'])
     def required_materials(self, request, pk=None):
@@ -151,8 +200,8 @@ class ProductionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def start(self, request, pk=None):
         production = self.get_object()
-        if production.status != 'pending':
-            return Response({'error': 'Can only start pending productions'}, status=400)
+        if production.status not in ['pending', 'scheduled']:
+            return Response({'error': 'Can only start pending or scheduled productions'}, status=400)
             
         if not production.item.product:
             return Response({'error': 'No product associated with this item'}, status=400)
@@ -186,7 +235,6 @@ class ProductionViewSet(viewsets.ModelViewSet):
                 if pm.material.quantity_in_stock < (pm.quantity_required * order_quantity):
                     partial_shortage.append(pm.material)
             if partial_shortage:
-                from plugins.notifications.utils import create_notification
                 admin_user = User.objects.filter(is_superuser=True).first()
                 if admin_user:
                     create_notification('PRODUCTION_STARTED', admin_user.id, {
@@ -205,9 +253,6 @@ class ProductionViewSet(viewsets.ModelViewSet):
         production.save()
 
         # Trigger notification for admin on start
-        from plugins.notifications.utils import create_notification
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
         admin_user = User.objects.filter(is_superuser=True).first()
         if admin_user:
             create_notification('PRODUCTION_STARTED', admin_user.id, {
@@ -215,7 +260,35 @@ class ProductionViewSet(viewsets.ModelViewSet):
                 'order_id': production.item.order.id
             })
 
-        return Response({'status': 'Production started. Stock deducted.'})
+        # Trigger notification for customer on start
+        if production.item.order.customer:
+            create_notification('PRODUCTION_STARTED', production.item.order.customer.id, {
+                'order_id': production.item.order.id,
+                'product_name': production.item.product.name
+            })
+
+        return Response({'status': 'Production started. Stock deducted and notifications sent.'})
+
+    @action(detail=True, methods=['post'])
+    def schedule(self, request, pk=None):
+        production = self.get_object()
+        scheduled_date = request.data.get('scheduled_date')
+        if not scheduled_date:
+            return Response({'error': 'Scheduled date is required'}, status=400)
+            
+        production.status = 'scheduled'
+        production.scheduled_date = scheduled_date
+        production.save()
+
+        # Trigger notification for customer
+        if production.item.order.customer:
+            create_notification('PRODUCTION_SCHEDULED', production.item.order.customer.id, {
+                'order_id': production.item.order.id,
+                'product_name': production.item.product.name,
+                'scheduled_date': scheduled_date
+            })
+
+        return Response({'status': 'Production scheduled and customer notified.'})
 
     @action(detail=False, methods=['get'])
     def ledger_details(self, request):

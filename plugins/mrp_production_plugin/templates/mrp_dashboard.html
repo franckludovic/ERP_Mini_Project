@@ -60,10 +60,12 @@
                     <span class="material-symbols-outlined">history</span>
                     <span>Prod. History</span>
                 </button>
-                <button onclick="switchTab('notifications')" id="nav-notifications" class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium relative">
-                    <span class="material-symbols-outlined">notifications</span>
-                    <span>Notifications</span>
-                    <span id="notif-badge" class="hidden absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-indigo-500 rounded-full"></span>
+                <button onclick="switchTab('notifications')" id="nav-notifications" class="flex items-center justify-between px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all rounded-lg font-['Inter'] text-sm font-medium relative">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined">notifications</span>
+                        <span>Notifications</span>
+                    </div>
+                    <span id="notif-badge" class="hidden bg-indigo-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">0</span>
                 </button>
             </nav>
 
@@ -264,6 +266,30 @@
         </div>
     </div>
 
+    <!-- NEW: Schedule Modal -->
+    <div id="schedule-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-black text-slate-900 uppercase tracking-tighter">Schedule Production</h3>
+                <button onclick="closeScheduleModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <p class="text-sm text-slate-500 mb-6 font-medium">Select a future date and time to start this production run. The customer will be notified.</p>
+            
+            <input type="hidden" id="schedule-prod-id">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Target Start Date & Time</label>
+                    <input type="datetime-local" id="schedule-date-input" class="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-900">
+                </div>
+                <button onclick="submitSchedule()" class="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-lg shadow-slate-200 mt-4">
+                    Confirm Schedule
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let jwtToken = null; // No longer needed for session auth, but keeping variable for fetchWithAuth compatibility
         let currentProductions = [];
@@ -391,7 +417,19 @@
                     <button onclick="viewMaterials(${prod.id})" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors">Details</button>`;
 
                 if (prod.status === 'pending') {
-                    actionsHtml += `<button onclick="startProduction(${prod.id}, ${prod.priority_level === 'urgent'})" class="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Start Run</button>`;
+                    actionsHtml += `<button onclick="openScheduleModal(${prod.id})" class="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-200 transition-all">Schedule</button>`;
+                    actionsHtml += `<button onclick="startProduction(${prod.id}, ${prod.priority_level === 'urgent'})" class="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Start Now</button>`;
+                } else if (prod.status === 'scheduled') {
+                    const timeRemaining = new Date(prod.scheduled_date) - new Date();
+                    const minutes = Math.max(0, Math.floor(timeRemaining / 60000));
+                    const seconds = Math.max(0, Math.floor((timeRemaining % 60000) / 1000));
+                    
+                    statusHtml = `
+                        <div class="flex flex-col gap-1">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 uppercase tracking-widest border border-indigo-100">Scheduled</span>
+                            <span class="text-[9px] font-bold text-indigo-500 animate-pulse">${minutes}m ${seconds}s left</span>
+                        </div>`;
+                    actionsHtml += `<button onclick="startProduction(${prod.id}, ${prod.priority_level === 'urgent'})" class="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Start Now</button>`;
                 } else {
                     actionsHtml += `<button onclick="completeProduction(${prod.id})" class="px-4 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-green-700 transition-all">Complete</button>`;
                 }
@@ -661,6 +699,76 @@
                 tr.style.display = tr.innerText.toLowerCase().includes(val) ? '' : 'none';
             });
         });
+
+        // NEW: Schedule logic
+        function openScheduleModal(id) {
+            document.getElementById('schedule-prod-id').value = id;
+            document.getElementById('schedule-modal').classList.remove('hidden');
+        }
+        function closeScheduleModal() {
+            document.getElementById('schedule-modal').classList.add('hidden');
+        }
+        async function submitSchedule() {
+            const id = document.getElementById('schedule-prod-id').value;
+            const date = document.getElementById('schedule-date-input').value;
+            if (!date) return alert('Please select a date');
+
+            const res = await fetchWithAuth(`/api/mrp/production/${id}/schedule/`, {
+                method: 'POST',
+                body: JSON.stringify({ scheduled_date: date })
+            });
+            if (res && res.ok) {
+                closeScheduleModal();
+                fetchProductions();
+            } else if (res) {
+                const data = await res.json();
+                alert(data.error || 'Failed to schedule.');
+            }
+        }
+
+        // NEW: Notification Badge poller
+        async function updateNotifBadge() {
+            const res = await fetchWithAuth('/api/notifications/unread-count/');
+            if (res && res.ok) {
+                const data = await res.json();
+                const badge = document.getElementById('notif-badge');
+                if (data.count > 0) {
+                    badge.innerText = data.count > 99 ? '99+' : data.count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        }
+
+        setInterval(updateNotifBadge, 30000);
+        updateNotifBadge();
+
+        // Second-by-second countdown update for table
+        setInterval(() => {
+            document.querySelectorAll('.animate-pulse').forEach(el => {
+                const text = el.innerText;
+                if (text.includes('m') && text.includes('s')) {
+                    const parts = text.match(/(\d+)m (\d+)s/);
+                    if (parts) {
+                        let m = parseInt(parts[1]);
+                        let s = parseInt(parts[2]);
+                        if (s > 0) {
+                            s--;
+                        } else if (m > 0) {
+                            m--;
+                            s = 59;
+                        }
+                        if (m === 0 && s === 0) {
+                            el.innerText = "Starting...";
+                            // The fetchProductions poller will pick up the 'in_progress' status
+                        } else {
+                            el.innerText = `${m}m ${s}s left`;
+                        }
+                    }
+                }
+            });
+        }, 1000);
     </script>
 </body>
 </html>

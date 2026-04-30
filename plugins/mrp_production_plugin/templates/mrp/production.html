@@ -59,6 +59,7 @@
                 <select id="filter-status" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm text-slate-600 font-medium">
                     <option value="">All Statuses</option>
                     <option value="pending">Pending</option>
+                    <option value="scheduled">Scheduled</option>
                     <option value="in_progress">In Progress</option>
                 </select>
                 <select id="filter-priority" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm text-slate-600 font-medium">
@@ -94,6 +95,30 @@
                 </thead>
                 <tbody id="production-tbody" class="divide-y divide-slate-50"></tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- NEW: Schedule Modal -->
+<div id="schedule-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 animate-in fade-in zoom-in duration-200 border border-slate-200">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-black text-slate-900 uppercase tracking-tighter">Schedule Production</h3>
+            <button onclick="closeScheduleModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <p class="text-sm text-slate-500 mb-6 font-medium">Select a future date and time to start this production run. The customer will be notified.</p>
+        
+        <input type="hidden" id="schedule-prod-id">
+        <div class="space-y-4">
+            <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Target Start Date & Time</label>
+                <input type="datetime-local" id="schedule-date-input" class="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-900">
+            </div>
+            <button onclick="submitSchedule()" class="w-full py-4 bg-slate-900 text-white font-black uppercase tracking-widest rounded-xl hover:bg-black transition-all shadow-lg shadow-slate-200 mt-4">
+                Confirm Schedule
+            </button>
         </div>
     </div>
 </div>
@@ -170,9 +195,17 @@
                 ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-red-50 text-red-600 border border-red-100 uppercase"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>Urgent</span>'
                 : '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase">' + prod.priority_level + '</span>';
 
-            var statusHtml = prod.status === 'pending'
-                ? '<span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full uppercase border border-amber-100">Pending Start</span>'
-                : '<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase border border-indigo-100">In Production</span>';
+            var statusHtml = '';
+            if (prod.status === 'pending') {
+                statusHtml = '<span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full uppercase border border-amber-100">Pending Start</span>';
+            } else if (prod.status === 'scheduled') {
+                var timeRemaining = new Date(prod.scheduled_date) - new Date();
+                var minutes = Math.max(0, Math.floor(timeRemaining / 60000));
+                var seconds = Math.max(0, Math.floor((timeRemaining % 60000) / 1000));
+                statusHtml = '<div class="flex flex-col gap-1"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 uppercase border border-indigo-100">Scheduled</span><span class="text-[9px] font-bold text-indigo-500 animate-pulse countdown-timer">' + minutes + 'm ' + seconds + 's left</span></div>';
+            } else {
+                statusHtml = '<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase border border-indigo-100">In Production</span>';
+            }
 
             var expectedDate = prod.expected_delivery_date
                 ? new Date(prod.expected_delivery_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
@@ -180,7 +213,10 @@
 
             var actionsHtml = '<div class="flex justify-end gap-2"><button onclick="viewMaterials(' + prod.id + ')" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors">Details</button>';
             if (prod.status === 'pending') {
+                actionsHtml += '<button onclick="openScheduleModal(' + prod.id + ')" class="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-200 transition-all">Schedule</button>';
                 actionsHtml += '<button onclick="startProduction(' + prod.id + ')" class="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Start Run</button>';
+            } else if (prod.status === 'scheduled') {
+                actionsHtml += '<button onclick="startProduction(' + prod.id + ')" class="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Start Now</button>';
             } else {
                 actionsHtml += '<button onclick="completeProduction(' + prod.id + ')" class="px-4 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-green-700 transition-all">Complete</button>';
             }
@@ -291,6 +327,43 @@
         var badge = document.getElementById('total-rows-badge');
         if (badge) badge.innerText = count + ' ITEMS';
     }
+
+    // Scheduling functions
+    function openScheduleModal(id) {
+        document.getElementById('schedule-prod-id').value = id;
+        document.getElementById('schedule-modal').classList.remove('hidden');
+    }
+    function closeScheduleModal() {
+        document.getElementById('schedule-modal').classList.add('hidden');
+    }
+    async function submitSchedule() {
+        var id = document.getElementById('schedule-prod-id').value;
+        var date = document.getElementById('schedule-date-input').value;
+        if (!date) { alert('Please select a date and time.'); return; }
+        var res = await fetchWithAuth('/api/mrp/production/' + id + '/schedule/', {
+            method: 'POST',
+            body: JSON.stringify({ scheduled_date: date })
+        });
+        if (res && res.ok) { closeScheduleModal(); fetchProductions(); }
+        else if (res) { var d = await res.json(); alert(d.error || 'Failed to schedule.'); }
+    }
+
+    // Polling and Countdown update
+    setInterval(fetchProductions, 30000);
+    setInterval(function() {
+        document.querySelectorAll('.countdown-timer').forEach(function(el) {
+            var text = el.innerText;
+            var parts = text.match(/(\d+)m (\d+)s/);
+            if (parts) {
+                var m = parseInt(parts[1]);
+                var s = parseInt(parts[2]);
+                if (s > 0) s--;
+                else if (m > 0) { m--; s = 59; }
+                if (m === 0 && s === 0) el.innerText = "Starting...";
+                else el.innerText = m + 'm ' + s + 's left';
+            }
+        });
+    }, 1000);
 
     // Auto-load on page swap
     triggerFetchOrders().then(function() { fetchProductions(); });

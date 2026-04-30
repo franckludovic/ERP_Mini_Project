@@ -53,7 +53,7 @@
             <div class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
                 <span class="material-symbols-outlined text-sm">add_shopping_cart</span>
             </div>
-            <h3 class="text-lg font-black text-slate-900 tracking-tight">Quick Order</h3>
+            <h3 class="text-lg font-black text-slate-900 tracking-tight">Order Now</h3>
         </div>
         
         <div class="grid grid-cols-12 gap-4 items-end">
@@ -174,7 +174,14 @@
                             {% if order.status == 'pending' %}
                             <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Pending Approval</span>
                             {% elif order.status == 'validated' %}
-                            <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">In Production</span>
+                                {% if item.production and item.production.status == 'scheduled' %}
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Scheduled</span>
+                                    <span class="text-[9px] font-bold text-indigo-500 animate-pulse customer-countdown" data-time="{{ item.production.scheduled_date|date:'Y-m-d H:i:s' }}">--:--</span>
+                                </div>
+                                {% else %}
+                                <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">In Production</span>
+                                {% endif %}
                             {% elif order.status == 'completed' %}
                             <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Delivered</span>
                             {% elif order.status == 'rejected' %}
@@ -330,5 +337,23 @@
             }
         });
     }
+
+    // Countdown logic for scheduled orders
+    function updateCustomerCountdowns() {
+        document.querySelectorAll('.customer-countdown').forEach(el => {
+            const target = new Date(el.dataset.time);
+            const now = new Date();
+            const diff = target - now;
+            if (diff <= 0) {
+                el.innerText = "Starting...";
+                return;
+            }
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            el.innerText = `Starts in ${m}m ${s}s`;
+        });
+    }
+    setInterval(updateCustomerCountdowns, 1000);
+    updateCustomerCountdowns();
 </script>
 {% endblock %}

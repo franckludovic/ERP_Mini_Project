@@ -16,6 +16,6 @@ class ProductionSerializer(serializers.ModelSerializer):
         model = Production
         fields = [
             'id', 'item', 'status', 'priority_level', 
-            'delivery_status', 'start_date', 'product_name', 
-            'order_id', 'quantity'
+            'delivery_status', 'start_date', 'scheduled_date',
+            'product_name', 'order_id', 'quantity'
         ]

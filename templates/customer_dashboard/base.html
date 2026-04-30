@@ -72,14 +72,17 @@
             <span class="material-symbols-outlined" style="{% if request.resolver_match.url_name == 'customer_history' %}font-variation-settings:'FILL' 1;{% endif %}">history</span>
             <span>Order History</span>
         </a>
-        <a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold {% if request.resolver_match.url_name == 'customer_notifications' %}bg-indigo-50 text-indigo-700{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900{% endif %}"
+        <a class="flex items-center justify-between px-4 py-3 rounded-xl transition-all text-sm font-semibold {% if request.resolver_match.url_name == 'customer_notifications' %}bg-indigo-50 text-indigo-700{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900{% endif %}"
            href="{% url 'customer_notifications' %}"
            hx-get="{% url 'customer_notifications' %}"
            hx-target="#main-content"
            hx-push-url="true"
            hx-on::after-request="updateActiveLink(this)">
-            <span class="material-symbols-outlined" style="{% if request.resolver_match.url_name == 'customer_notifications' %}font-variation-settings:'FILL' 1;{% endif %}">notifications</span>
-            <span>Notifications</span>
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined" style="{% if request.resolver_match.url_name == 'customer_notifications' %}font-variation-settings:'FILL' 1;{% endif %}">notifications</span>
+                <span>Notifications</span>
+            </div>
+            <span id="notif-badge" class="hidden bg-indigo-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">0</span>
         </a>
     </nav>
 
@@ -137,6 +140,24 @@
         const activeLink = document.querySelector(`#sidebar-nav a[href="${currentPath}"]`);
         if (activeLink) updateActiveLink(activeLink);
     };
+
+    async function updateNotifBadge() {
+        try {
+            const res = await fetch('/api/notifications/unread-count/');
+            if (res.ok) {
+                const data = await res.json();
+                const badge = document.getElementById('notif-badge');
+                if (data.count > 0) {
+                    badge.innerText = data.count > 99 ? '99+' : data.count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        } catch (e) {}
+    }
+    setInterval(updateNotifBadge, 30000);
+    updateNotifBadge();
 </script>
 
 </body>
