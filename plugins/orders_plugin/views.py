@@ -27,7 +27,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def place_order(self, request):
         """Create an order with multiple products"""
-        
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def place_order(self, request):
+        """Create an order with multiple products"""
+        from decimal import Decimal
         # Validate input
         serializer = CreateOrderSerializer(data=request.data)
         if not serializer.is_valid():
@@ -57,30 +61,37 @@ class OrderViewSet(viewsets.ModelViewSet):
                 user.save()
         
         # Calculate subtotal
-        subtotal = 0
+        subtotal = Decimal('0')
         for item in items_data:
-            subtotal += item['quantity'] * item['unit_price']
+            subtotal += Decimal(str(item['quantity'])) * Decimal(str(item['unit_price']))
         
-        # Calculate discount for premium customers
-        discount_percentage = 0
-        discount_amount = 0
+        from plugins.users_plugin.models import GlobalSettings
+        settings = GlobalSettings.get_settings()
         
         customer_orders = Order.objects.filter(customer_id=user_id, status='completed')
         order_count = customer_orders.count()
-        total_spent = customer_orders.aggregate(total=Sum('total_amount'))['total'] or 0
+        total_spent = Decimal(str(customer_orders.aggregate(total=Sum('total_amount'))['total'] or 0))
         
-        if order_count >= 7 and total_spent >= 3000000:
-            discount_percentage = 4
+        discount_amount = Decimal('0')
+        discount_percentage = Decimal('0')
+        
+        is_premium = order_count >= settings.premium_transaction_threshold and total_spent >= settings.premium_spending_threshold
+        
+        if is_premium:
+            discount_percentage = Decimal(str(settings.premium_discount_percentage))
             discount_amount = (subtotal * discount_percentage) / 100
         
         total_price = subtotal - discount_amount
         
+        # Priority logic: Premium customers get urgent priority by default
+        priority = 'urgent' if is_premium else 'normal'
+
         # Create order
         order = Order.objects.create(
             customer_id=user_id,
             total_amount=total_price,
             discount_applied=discount_amount,
-            priority='normal',
+            priority=priority,
             status='pending',
             grade=request.data.get('grade')
         )
@@ -88,7 +99,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Create order items
         created_items = []
         for item_data in items_data:
-            # Auto-resolve Product FK from inventory if not provided
             product_id = item_data.get('product_id')
             product_obj = None
             from plugins.inventory_plugin.models import Product
@@ -127,9 +137,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             'order_id': order.id,
             'message': 'Order placed successfully!',
             'summary': {
-                'subtotal': subtotal,
-                'discount_percentage': discount_percentage,
-                'discount_amount': discount_amount,
+                'subtotal': float(subtotal),
+                'discount_percentage': float(discount_percentage),
+                'discount_amount': float(discount_amount),
                 'total_amount': float(order.total_amount),
                 'currency': 'FCFA'
             },
@@ -156,7 +166,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         total_quantity = order.items.aggregate(total=Sum('quantity'))['total'] or 0
         
-        if total_quantity > 100:
+        # If it's already urgent (e.g. from premium or manual mark), keep it. 
+        # Otherwise, check quantity threshold.
+        if order.priority != 'urgent' and total_quantity > 100:
             order.priority = 'urgent'
         
         order.status = 'validated'
@@ -246,7 +258,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def mark_completed(self, request, pk=None):
-        """Mark order as completed"""
+        """Mark order as completed and update customer lifetime stats"""
         order = get_object_or_404(Order, pk=pk)
         
         if order.status != 'validated':
@@ -254,14 +266,38 @@ class OrderViewSet(viewsets.ModelViewSet):
                 'error': f'Only validated orders can be completed. Current status: {order.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        order.status = 'completed'
-        order.save()
+        with transaction.atomic():
+            order.status = 'completed'
+            order.save()
+            
+            # Update customer lifetime stats
+            customer = order.customer
+            customer.transaction_count = Order.objects.filter(customer=customer, status='completed').count()
+            customer.total_spent = Order.objects.filter(customer=customer, status='completed').aggregate(total=Sum('total_amount'))['total'] or 0
+            customer.save()
+
+            # Trigger notification for customer
+            from plugins.notifications.utils import create_notification
+            create_notification('ORDER_COMPLETED', customer.id, {
+                'order_id': order.id,
+                'total_amount': float(order.total_amount)
+            })
+
+            # Notify Admins that an order has been completed (if PM does it)
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            admins = User.objects.filter(role='admin') | User.objects.filter(is_superuser=True)
+            for admin in admins.distinct():
+                create_notification('ORDER_COMPLETED_ADMIN', admin.id, {
+                    'order_id': order.id,
+                    'customer_name': customer.username
+                })
         
         return Response({
             'success': True,
             'order_id': order.id,
             'status': 'completed',
-            'message': 'Order completed successfully'
+            'message': 'Order completed and customer stats updated successfully'
         })
 
     @action(detail=True, methods=['post'])
@@ -301,6 +337,17 @@ class OrderViewSet(viewsets.ModelViewSet):
                     if product and quantity:
                         product.quantity_in_stock = max(0, product.quantity_in_stock - quantity)
                         product.save()
+            
+            # Notify Admins that the customer received the order
+            from plugins.notifications.utils import create_notification
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            admins = User.objects.filter(role='admin') | User.objects.filter(is_superuser=True)
+            for admin in admins.distinct():
+                create_notification('RECEIPT_CONFIRMED', admin.id, {
+                    'order_id': order.id,
+                    'customer_name': order.customer.username
+                })
         except ImportError:
             pass
             
@@ -330,6 +377,9 @@ def dashboard_view(request):
     
     pending_value_dict = Order.objects.filter(status='pending').aggregate(total=Sum('total_amount'))
     pending_value = pending_value_dict['total'] or 0
+
+    completed_value_dict = Order.objects.filter(status='completed').aggregate(total=Sum('total_amount'))
+    completed_value = completed_value_dict['total'] or 0
     
     # Grade based analytics
     grade_1_count = Order.objects.filter(grade='1st').count()
@@ -354,6 +404,7 @@ def dashboard_view(request):
         'rejected_count': rejected_count,
         'completed_count': completed_count,
         'pending_value': pending_value,
+        'completed_value': completed_value,
         'grade_1_count': grade_1_count,
         'grade_2_count': grade_2_count,
         'grade_3_count': grade_3_count,
@@ -399,9 +450,12 @@ def customer_dashboard_view(request):
     except ImportError:
         orders = Order.objects.filter(customer=customer).order_by('-created_at')[:20]
     
-    # Calculate progress to Premium (7 orders, 3M XAF)
-    orders_progress = min((completed_orders_count / 7) * 100, 100)
-    spent_progress = min((float(total_spent) / 3000000.0) * 100, 100)
+    from plugins.users_plugin.models import GlobalSettings
+    settings = GlobalSettings.get_settings()
+    
+    # Calculate progress to Premium
+    orders_progress = min((completed_orders_count / settings.premium_transaction_threshold) * 100, 100)
+    spent_progress = min((float(total_spent) / float(settings.premium_spending_threshold)) * 100, 100)
     progress_percent = int((orders_progress + spent_progress) / 2)
     
     # Real products from inventory
@@ -417,8 +471,12 @@ def customer_dashboard_view(request):
         'progress_percent': progress_percent,
         'products': real_products,
         'grade_choices': User.GRADE_CHOICES,
+        'settings': settings,
     }
     
+    base_template = 'customer_dashboard/partial.html' if request.headers.get('HX-Request') else 'customer_dashboard/base.html'
+    context['base_template'] = base_template
+
     return render(request, 'customer_dashboard.html', context)
 
 
@@ -440,4 +498,7 @@ def order_history_view(request):
         'customer': customer,
         'orders': orders,
     }
-    return render(request, 'order_history.html', context)
+    base_template = 'customer_dashboard/partial.html' if request.headers.get('HX-Request') else 'customer_dashboard/base.html'
+    context['base_template'] = base_template
+
+    return render(request, 'order_history.html', context)

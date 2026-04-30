@@ -3,6 +3,31 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import BOM, Production
 from .serializers import BOMSerializer, ProductionSerializer
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
+
+def _pm_base(request):
+    """Return the correct base template for production manager based on HX-Request."""
+    if request.headers.get('HX-Request'):
+        return 'production_manager/partial.html'
+    return 'production_manager/base.html'
+
+
+@login_required
+def production_page(request):
+    return render(request, 'mrp/production.html', {'base_template': _pm_base(request)})
+
+
+@login_required
+def ledger_page(request):
+    return render(request, 'mrp/ledger.html', {'base_template': _pm_base(request)})
+
+
+@login_required
+def history_page(request):
+    return render(request, 'mrp/history.html', {'base_template': _pm_base(request)})
+
 
 class BOMViewSet(viewsets.ModelViewSet):
     queryset = BOM.objects.all()

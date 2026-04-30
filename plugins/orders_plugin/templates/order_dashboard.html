@@ -1,18 +1,17 @@
 {% extends base_template %}
+{% load currency_filters %}
 
 {% block content %}
 <main class="min-h-screen">
-    <div id="dashboard-content" 
-         class="p-8 max-w-7xl mx-auto space-y-8" 
-         hx-get="{% url 'admin_orders' %}" 
-         hx-select="#dashboard-content" 
-         hx-swap="outerHTML">
+    <div id="dashboard-content" class="p-8 max-w-7xl mx-auto space-y-8" hx-get="{% url 'admin_orders' %}"
+        hx-select="#dashboard-content" hx-swap="outerHTML" hx-trigger="every 30s">
+
         <!-- Unified Header Area -->
         <div class="flex justify-between items-center mb-8">
             <div class="flex items-center gap-4">
                 <h2 class="text-2xl font-bold tracking-tight text-slate-900">Order Management</h2>
                 <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">Live</span>
-                <button hx-get="{% url 'admin_orders' %}" hx-target="#main-content" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-slate-50" title="Refresh">
+                <button onclick="refreshDashboard()" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-slate-50" title="Refresh">
                     <span class="material-symbols-outlined text-[20px]">refresh</span>
                 </button>
             </div>
@@ -20,62 +19,76 @@
 
         <!-- Main Analytics Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active</p>
                 <h3 class="text-xl font-black text-indigo-600">{{ total_active_orders }}</h3>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Pending</p>
                 <h3 class="text-xl font-black text-amber-600">{{ pending_count }}</h3>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Rejected</p>
                 <h3 class="text-xl font-black text-red-600">{{ rejected_count }}</h3>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Done</p>
                 <h3 class="text-xl font-black text-emerald-600">{{ completed_count }}</h3>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Urgent</p>
                 <h3 class="text-xl font-black text-rose-600">{{ urgent_orders }}</h3>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">1st Grade</p>
                 <h3 class="text-xl font-black text-slate-900">{{ grade_1_count }}</h3>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">2nd Grade</p>
                 <h3 class="text-xl font-black text-slate-900">{{ grade_2_count }}</h3>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
                 <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">3rd Grade</p>
                 <h3 class="text-xl font-black text-slate-900">{{ grade_3_count }}</h3>
             </div>
         </div>
 
-        <!-- Value Metric -->
-        <div class="bg-indigo-600 p-6 rounded-2xl shadow-lg flex justify-between items-center text-white">
-            <div>
-                <p class="text-xs font-bold text-indigo-200 uppercase tracking-widest">Total Pending Capital</p>
-                <h3 class="text-3xl font-black mt-1">{{ pending_value|floatformat:0 }} <span class="text-lg font-normal opacity-70 text-indigo-100">XAF</span></h3>
+        <!-- Value Metrics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Pending Capital -->
+            <div class="bg-indigo-600 p-6 rounded-2xl shadow-lg flex justify-between items-center text-white">
+                <div>
+                    <p class="text-xs font-bold text-indigo-200 uppercase tracking-widest">Total Pending Capital</p>
+                    <h3 class="text-3xl font-black mt-1">{{ pending_value|smart_currency }} <span class="text-lg font-normal opacity-70 text-indigo-100">XAF</span></h3>
+                </div>
+                <div class="p-4 bg-white/10 rounded-2xl backdrop-blur-md">
+                    <span class="material-symbols-outlined text-4xl">payments</span>
+                </div>
             </div>
-            <div class="p-4 bg-white/10 rounded-2xl backdrop-blur-md">
-                <span class="material-symbols-outlined text-4xl">payments</span>
+
+            <!-- Capital Earned -->
+            <div class="bg-emerald-600 p-6 rounded-2xl shadow-lg flex justify-between items-center text-white">
+                <div>
+                    <p class="text-xs font-bold text-emerald-200 uppercase tracking-widest">Total Capital Earned</p>
+                    <h3 class="text-3xl font-black mt-1">{{ completed_value|smart_currency }} <span class="text-lg font-normal opacity-70 text-emerald-100">XAF</span></h3>
+                </div>
+                <div class="p-4 bg-white/10 rounded-2xl backdrop-blur-md">
+                    <span class="material-symbols-outlined text-4xl">account_balance_wallet</span>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-[0px_1px_3px_rgba(15,23,42,0.05),0px_10px_15px_-3px_rgba(15,23,42,0.03)] border border-slate-100 overflow-hidden">
-            <div class="p-6 border-b border-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-6 border-b border-slate-50">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-4">
                     <div>
                         <h3 class="text-lg font-bold text-slate-900">Order Queue</h3>
-                        <p class="text-sm text-slate-500">Monitor and validate customer orders based on grade compliance.</p>
+                        <p class="text-sm text-slate-500">Monitor and validate customer orders.</p>
                     </div>
                     <div class="flex items-center gap-4 flex-1 justify-end">
                         <div class="relative w-full max-w-xs">
                             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                            <input type="text" id="orderSearchInput" placeholder="Search orders..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border-slate-100 rounded-xl text-xs focus:ring-indigo-600 focus:border-indigo-600 transition-all">
+                            <input type="text" id="orderSearchInput" oninput="filterOrders()" placeholder="Search orders..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border-slate-100 rounded-xl text-xs focus:ring-indigo-600 transition-all">
                         </div>
                         <div class="flex items-center gap-2 px-3 py-2 bg-indigo-50 rounded-xl">
                             <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total Rows</span>
@@ -85,94 +98,96 @@
                 </div>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left border-collapse" id="ordersMainTable">
                     <thead>
                         <tr class="bg-slate-50/50">
-                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Customer Name</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Grade</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Total Value</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
-                    </tr>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Customer Name</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Grade</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Total Value</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Status</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         {% for order in orders %}
-                        <tr class="group transition-colors {% if order.priority == 'urgent' %}bg-red-50/10 hover:bg-red-50/30{% else %}hover:bg-slate-50{% endif %}">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                                    {{ order.customer.username|make_list|first|upper }}
-                                </div>
-                                <div class="flex flex-col">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm font-bold text-slate-900">{{ order.customer.username }}</span>
-                                        {% if order.customer.is_premium %}
-                                        <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">VIP</span>
+                        <tr class="order-row group transition-colors {% if order.priority == 'urgent' %}bg-red-50/10 hover:bg-red-50/30{% else %}hover:bg-slate-50{% endif %}">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 uppercase">
+                                        {{ order.customer.username|slice:":1" }}
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2">
+                                            {% if order.customer.is_premium %}
+                                            <span class="flex items-center gap-1">
+                                                <span class="material-symbols-outlined text-amber-500 text-[16px]" title="Premium Member">crown</span>
+                                                <!-- <span class="bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">VIP</span> -->
+                                            </span>
+                                            {% endif %}
+                                            <span class="text-sm font-bold text-slate-900">{{ order.customer.username }}</span>
+                                        </div>
+                                        {% if order.priority == 'urgent' %}
+                                        <span class="text-[9px] text-red-500 font-black uppercase tracking-tighter">Urgent Priority</span>
                                         {% endif %}
                                     </div>
-                                    {% if order.priority == 'urgent' %}
-                                    <span class="text-[9px] text-red-500 font-black uppercase">Urgent Action Needed</span>
-                                    {% endif %}
                                 </div>
-                            </div>
-                        </td>
+                            </td>
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
-                                    {{ order.customer.grade|default:"Standard" }}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 text-indigo-700 uppercase tracking-wider border border-indigo-100">
+                                    {{ order.grade|default:"Standard" }}
                                 </span>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="text-sm font-bold text-slate-900">{{ order.total_amount|floatformat:2 }} FCFA</span>
+                                <span class="text-sm font-black text-slate-900">{{ order.total_amount|smart_currency }} FCFA</span>
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 text-center">
                                 {% if order.status == 'pending' %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-amber-50 text-amber-600 uppercase tracking-widest border border-amber-100">
+                                    <span class="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span> Pending
                                 </span>
                                 {% elif order.status == 'validated' %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700">
-                                    <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600 uppercase tracking-widest border border-emerald-100">
                                     Validated
                                 </span>
                                 {% elif order.status == 'rejected' %}
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-error-container text-on-error-container">
-                                    <span class="material-symbols-outlined text-[14px]">cancel</span> Rejected
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 uppercase tracking-widest border border-rose-100">
+                                    Rejected
                                 </span>
                                 {% else %}
-                                <div class="flex flex-col gap-1 items-start">
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                                        <span class="material-symbols-outlined text-[14px]">task_alt</span> Completed
-                                    </span>
-                                    {% if order.delivery_status and order.delivery_status != 'pending' %}
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 uppercase tracking-widest">
-                                        <span class="material-symbols-outlined text-[12px]">local_shipping</span> {{ order.delivery_status }}
-                                    </span>
-                                    {% endif %}
-                                </div>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 uppercase tracking-widest border border-slate-200">
+                                    Completed
+                                </span>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <div class="flex gap-2 justify-end items-center">
+                                <div class="flex items-center justify-end gap-2">
                                     {% if order.status == 'pending' %}
-                                    <button onclick="handleOrderAction('{{ order.id }}', 'validate_order')"
-                                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-indigo-700 transition-colors">Validate</button>
-                                    <button onclick="handleOrderAction('{{ order.id }}', 'reject_order')"
-                                        class="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 text-xs font-bold rounded-lg shadow-sm hover:bg-red-100 transition-colors">Reject</button>
+                                    <button onclick="window.runOrderAction('{{ order.id }}', 'validate_order')"
+                                        class="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100">Validate</button>
+                                    <button onclick="window.runOrderAction('{{ order.id }}', 'reject_order')"
+                                        class="px-4 py-2 bg-white text-rose-600 border border-rose-100 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-50 transition-all">Reject</button>
                                     {% endif %}
+
                                     {% if order.priority != 'urgent' and order.status != 'completed' and order.status != 'rejected' %}
-                                    <button onclick="handleOrderAction('{{ order.id }}', 'mark_urgent')"
-                                        class="px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold rounded-lg shadow-sm hover:bg-rose-100 transition-colors">Mark
-                                        Urgent</button>
+                                    <button onclick="window.runOrderAction('{{ order.id }}', 'mark_urgent')"
+                                        class="px-4 py-2 bg-rose-50 text-rose-700 border border-rose-100 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-100 transition-all">Mark Urgent</button>
                                     {% endif %}
-                                    <button onclick="viewOrderDetail('{{ order.id }}')"
-                                        class="px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-lg shadow-sm hover:bg-slate-200 transition-colors">Details</button>
+
+                                    {% if order.status == 'validated' %}
+                                    <button onclick="window.runOrderAction('{{ order.id }}', 'mark_completed')"
+                                        class="px-4 py-2 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">Complete</button>
+                                    {% endif %}
+
+                                    <button onclick="window.viewOrderDetail('{{ order.id }}')"
+                                        class="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-900 transition-all" title="View Details">
+                                        <span class="material-symbols-outlined text-sm">visibility</span>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-slate-500">No orders found matching
-                                criteria.</td>
+                            <td colspan="5" class="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-widest">No orders in queue</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -182,217 +197,124 @@
     </div>
 </main>
 
-<!-- Order Detail Modal -->
+<!-- Modals (Outside the refresh div) -->
 <div id="orderDetailModal" class="modal">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-        <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-            <div>
-                <h2 class="text-xl font-bold text-slate-900">Order #<span id="modalOrderId"></span></h2>
-                <p class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1" id="modalOrderDate"></p>
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative">
+        <button onclick="closeModal('orderDetailModal')" class="absolute top-6 right-6 p-2 hover:bg-slate-100 rounded-full transition-all">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <div class="p-10">
+            <h2 class="text-2xl font-black text-slate-900 mb-8">Order Details #<span id="modalOrderId"></span></h2>
+            <div id="modalContent" class="space-y-8">
+                <!-- Injected via JS -->
             </div>
-            <button onclick="closeModal('orderDetailModal')" class="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-        <div class="p-8 max-h-[70vh] overflow-y-auto">
-            <div class="grid grid-cols-2 gap-8 mb-8">
-                <div class="space-y-4">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer Information</p>
-                        <p class="text-sm font-bold text-slate-900 mt-1 flex items-center gap-2">
-                            <span id="modalCustomerName"></span>
-                            <span id="modalVipBadge" class="hidden bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">VIP</span>
-                        </p>
-                        <p class="text-xs text-slate-500 mt-1" id="modalCustomerGrade"></p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Priority & Status</p>
-                        <div class="flex gap-2 mt-2">
-                            <span id="modalPriority" class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"></span>
-                            <span id="modalStatus" class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Expected Delivery</p>
-                        <p class="text-sm font-bold text-indigo-600 mt-1" id="modalDeliveryDate">Not Scheduled</p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Value</p>
-                        <p class="text-lg font-black text-slate-900 mt-1" id="modalTotalValue"></p>
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Items Ordered</p>
-                <div class="border border-slate-100 rounded-xl overflow-hidden">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-100">
-                            <tr>
-                                <th class="px-4 py-3 font-bold text-slate-600">Product</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-center">Qty</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-right">Unit Price</th>
-                                <th class="px-4 py-3 font-bold text-slate-600 text-right">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modalItemsTable" class="divide-y divide-slate-50">
-                            <!-- Items injected here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
-            <button onclick="closeModal('orderDetailModal')" class="px-6 py-2 bg-white text-slate-600 border border-slate-200 text-sm font-bold rounded-xl hover:bg-slate-50 transition-colors">Close</button>
         </div>
     </div>
 </div>
 
-<!-- Rejection Modal -->
 <div id="rejectModal" class="modal">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden">
-        <div class="p-8">
-            <div class="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6">
-                <span class="material-symbols-outlined text-3xl">cancel</span>
-            </div>
-            <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Reject Order</h3>
-            <p class="text-slate-500 mb-8">Please provide a reason for rejecting this order. The customer will receive this message.</p>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Rejection Reason</label>
-                    <textarea id="rejectReason" rows="4" placeholder="e.g. Insufficient stock, Invalid grade compliance..." 
-                        class="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-red-500 transition-all placeholder:text-slate-300"></textarea>
-                </div>
-            </div>
-
-            <div class="flex gap-4 mt-10">
-                <button onclick="closeModal('rejectModal')" class="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
-                <button onclick="submitRejection()" class="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200">Confirm Rejection</button>
-            </div>
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 relative">
+        <h3 class="text-2xl font-black text-slate-900 mb-4">Reject Order</h3>
+        <p class="text-sm text-slate-500 mb-6">Explain why this order is being rejected.</p>
+        <textarea id="rejectReason" rows="4" class="w-full bg-slate-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-rose-500 transition-all mb-6" placeholder="e.g. Stock unavailable..."></textarea>
+        <div class="flex gap-4">
+            <button onclick="closeModal('rejectModal')" class="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase">Cancel</button>
+            <button onclick="confirmRejection()" class="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-rose-100">Reject</button>
         </div>
     </div>
 </div>
 
 <script>
-    function closeModal(id) {
-        document.getElementById(id).classList.remove('active');
-    }
+    (function() {
+        window.refreshDashboard = function() {
+            htmx.ajax('GET', '{% url "admin_orders" %}', {target:'#dashboard-content', swap:'outerHTML'});
+        };
 
-    function viewOrderDetail(orderId) {
-        fetch(`/api/orders/orders/${orderId}/`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('modalOrderId').textContent = data.id;
-                document.getElementById('modalOrderDate').textContent = new Date(data.created_at).toLocaleString();
-                document.getElementById('modalCustomerName').textContent = data.customer_name || "Customer";
-                
-                if(data.discount_applied > 0) {
-                    document.getElementById('modalVipBadge').classList.remove('hidden');
-                } else {
-                    document.getElementById('modalVipBadge').classList.add('hidden');
-                }
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.remove('active');
+        };
 
-                document.getElementById('modalStatus').textContent = data.status;
-                document.getElementById('modalStatus').className = `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                    data.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
-                    data.status === 'validated' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
-                }`;
+        window.viewOrderDetail = async function(orderId) {
+            const res = await fetch(`/api/orders/orders/${orderId}/`);
+            const data = await res.json();
+            document.getElementById('modalOrderId').innerText = data.id;
+            const content = document.getElementById('modalContent');
+            
+            let itemsHtml = data.items.map(item => `
+                <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">${item.product_name}</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">Qty: ${item.quantity}</p>
+                    </div>
+                    <p class="text-sm font-black text-indigo-600">${parseFloat(item.subtotal).toLocaleString()} FCFA</p>
+                </div>
+            `).join('');
 
-                document.getElementById('modalPriority').textContent = data.priority;
-                document.getElementById('modalPriority').className = `text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                    data.priority === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                }`;
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer</p>
+                        <p class="text-sm font-bold text-slate-900">${data.customer_name}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Amount</p>
+                        <p class="text-sm font-black text-indigo-600">${parseFloat(data.total_amount).toLocaleString()} FCFA</p>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Line Items</p>
+                    <div class="space-y-2">${itemsHtml}</div>
+                </div>
+            `;
+            document.getElementById('orderDetailModal').classList.add('active');
+        };
 
-                document.getElementById('modalDeliveryDate').textContent = data.expected_delivery_date || "To be confirmed";
-                document.getElementById('modalTotalValue').textContent = `${parseFloat(data.total_amount).toLocaleString()} FCFA`;
-
-                const tableBody = document.getElementById('modalItemsTable');
-                tableBody.innerHTML = '';
-                data.items.forEach(item => {
-                    const row = `
-                        <tr>
-                            <td class="px-4 py-3 font-medium text-slate-900">${item.product_name}</td>
-                            <td class="px-4 py-3 text-center text-slate-600">${item.quantity}</td>
-                            <td class="px-4 py-3 text-right text-slate-600">${parseFloat(item.unit_price).toLocaleString()}</td>
-                            <td class="px-4 py-3 text-right font-bold text-slate-900">${parseFloat(item.subtotal).toLocaleString()}</td>
-                        </tr>
-                    `;
-                    tableBody.innerHTML += row;
-                });
-
-                document.getElementById('orderDetailModal').classList.add('active');
-            });
-    }
-
-    function handleOrderAction(orderId, action) {
-        if (action === 'reject_order') {
-            openRejectModal(orderId);
-            return;
-        }
-
-        if (!confirm(`Are you sure you want to ${action.split('_')[0]} this order?`)) return;
-        
-        submitOrderAction(orderId, action);
-    }
-
-    let currentRejectOrderId = null;
-    function openRejectModal(orderId) {
-        currentRejectOrderId = orderId;
-        document.getElementById('rejectModal').classList.add('active');
-    }
-
-    function submitRejection() {
-        const reason = document.getElementById('rejectReason').value;
-        if (!reason) {
-            alert('Please provide a reason for rejection.');
-            return;
-        }
-        submitOrderAction(currentRejectOrderId, 'reject_order', { reason });
-        closeModal('rejectModal');
-    }
-
-    function submitOrderAction(orderId, action, extraData = {}) {
-        fetch(`/api/orders/orders/${orderId}/${action}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ reason: "Admin action from dashboard", ...extraData })
-        }).then(response => {
-            if (response.ok) {
-                htmx.ajax('GET', '{% url "admin_orders" %}', {target:'#main-content', swap:'innerHTML'});
-            } else {
-                response.json().then(data => alert(data.error || 'Action failed'));
+        let activeRejectId = null;
+        window.runOrderAction = function(orderId, action) {
+            if (action === 'reject_order') {
+                activeRejectId = orderId;
+                document.getElementById('rejectModal').classList.add('active');
+                return;
             }
-        });
-    }
 
-    // Search logic
-    const searchInput = document.getElementById('orderSearchInput');
-    const totalRowsCount = document.getElementById('totalRowsCount');
-    const tableRows = document.querySelectorAll('tbody tr');
+            const actionLabel = action.split('_')[0].toUpperCase();
+            if (confirm(`Confirm ${actionLabel} for Order #${orderId}?`)) {
+                submitAction(orderId, action);
+            }
+        };
 
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const term = this.value.toLowerCase();
-            let visibleCount = 0;
-            
-            tableRows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if(text.includes(term)) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
+        window.confirmRejection = function() {
+            const reason = document.getElementById('rejectReason').value;
+            if (!reason) return alert("Please provide a reason.");
+            submitAction(activeRejectId, 'reject_order', { reason });
+            closeModal('rejectModal');
+        };
+
+        async function submitAction(orderId, action, extra = {}) {
+            const res = await fetch(`/api/orders/orders/${orderId}/${action}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: "Dashboard Action", ...extra })
             });
-            
-            if (totalRowsCount) totalRowsCount.textContent = visibleCount;
-        });
-    }
+            if (res.ok) {
+                refreshDashboard();
+            } else {
+                const data = await res.json();
+                alert(data.error || "Action failed");
+            }
+        }
+
+        window.filterOrders = function() {
+            const val = document.getElementById('orderSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('.order-row');
+            let count = 0;
+            rows.forEach(row => {
+                const match = row.innerText.toLowerCase().includes(val);
+                row.style.display = match ? '' : 'none';
+                if(match) count++;
+            });
+            document.getElementById('totalRowsCount').innerText = count;
+        };
+    })();
 </script>
 {% endblock %}

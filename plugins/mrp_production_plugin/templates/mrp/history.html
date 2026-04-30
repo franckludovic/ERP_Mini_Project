@@ -1,0 +1,89 @@
+{% extends base_template %}
+
+{% block content %}
+<div class="p-8 space-y-8 max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <h2 class="text-3xl font-black text-slate-900 tracking-tight">Production History</h2>
+        <button onclick="fetchHistory()" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-slate-50" title="Refresh">
+            <span class="material-symbols-outlined text-[20px]">refresh</span>
+        </button>
+    </div>
+
+    <!-- History Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="font-bold text-slate-900">Completed Productions</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/50">
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Completion Date</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantity</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Reference</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody" class="divide-y divide-slate-50">
+                    <tr><td colspan="4" class="px-8 py-20 text-center text-slate-400 animate-pulse">Loading history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function fetchWithAuth(url, options) {
+        options = options || {};
+        var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+        var csrf = getCookie('csrftoken');
+        if (csrf) headers['X-CSRFToken'] = csrf;
+        return fetch(url, Object.assign({}, options, { headers }));
+    }
+
+    async function fetchHistory() {
+        var tbody = document.getElementById('history-tbody');
+        tbody.innerHTML = '<tr><td colspan="4" class="px-8 py-10 text-center text-slate-400 animate-pulse">Loading...</td></tr>';
+
+        var res = await fetchWithAuth('/api/mrp/production/');
+        if (!res) return;
+        var data = await res.json();
+        var completed = data.filter(function(p) { return p.status === 'completed'; });
+
+        if (completed.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="px-8 py-12 text-center text-slate-400 font-bold">No completed productions yet.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        completed.forEach(function(prod) {
+            var tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+            tr.innerHTML = '<td class="px-8 py-6 font-bold text-slate-900 text-sm">' + prod.product_name + '</td>'
+                + '<td class="px-8 py-6 text-sm text-slate-500">' + new Date(prod.start_date).toLocaleDateString() + '</td>'
+                + '<td class="px-8 py-6 text-sm font-bold text-slate-700">' + prod.quantity + ' Units</td>'
+                + '<td class="px-8 py-6 text-right text-xs font-bold text-slate-400 uppercase">Order #ORD-' + prod.order_id + '</td>';
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Auto-load on navigation
+    fetchHistory();
+</script>
+{% endblock %}

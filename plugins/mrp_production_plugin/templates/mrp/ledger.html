@@ -1,0 +1,128 @@
+{% extends base_template %}
+
+{% block content %}
+<div class="p-8 space-y-8 max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Material Ledger</h2>
+            <button onclick="loadMaterialsLedger()" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-slate-50" title="Refresh">
+                <span class="material-symbols-outlined text-[20px]">refresh</span>
+            </button>
+        </div>
+        <p class="text-sm text-slate-500">Real-time inventory health and shortage tracking</p>
+    </div>
+
+    <!-- Ledger Table -->
+    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Click Refresh to calculate requirements</p>
+            </div>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                <input type="text" id="ledger-search" placeholder="Search materials or orders..."
+                    class="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64 transition-all">
+            </div>
+        </div>
+
+        <div id="ledger-empty" class="py-20 text-center text-slate-400">
+            <span class="material-symbols-outlined text-5xl block mb-4">inventory_2</span>
+            <p class="font-bold">No data yet</p>
+            <p class="text-sm">Click the refresh button above to calculate material requirements</p>
+        </div>
+        <div id="ledger-table-container" class="hidden overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/50">
+                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order ID</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Material</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Needed / Stock</th>
+                        <th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ledger-tbody" class="divide-y divide-slate-50"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function fetchWithAuth(url, options) {
+        options = options || {};
+        var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+        var csrf = getCookie('csrftoken');
+        if (csrf) headers['X-CSRFToken'] = csrf;
+        return fetch(url, Object.assign({}, options, { headers }));
+    }
+
+    async function loadMaterialsLedger() {
+        var tbody = document.getElementById('ledger-tbody');
+        var empty = document.getElementById('ledger-empty');
+        var table = document.getElementById('ledger-table-container');
+
+        tbody.innerHTML = '<tr><td colspan="5" class="p-10 text-center animate-pulse text-slate-400">Calculating ledger...</td></tr>';
+        empty.classList.add('hidden');
+        table.classList.remove('hidden');
+
+        var res = await fetchWithAuth('/api/mrp/production/ledger_details/');
+        if (!res) return;
+        var data = await res.json();
+
+        if (data.length === 0) {
+            empty.classList.remove('hidden');
+            table.classList.add('hidden');
+            return;
+        }
+
+        tbody.innerHTML = '';
+        data.forEach(function(m) {
+            var colorClass = m.status === 'surplus' ? 'text-green-600' : m.status === 'shortage' ? 'text-red-600' : 'text-amber-500';
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td class="px-6 py-6 font-bold text-slate-400 text-xs uppercase">ORD-' + m.order_id + '</td>'
+                + '<td class="px-6 py-6 font-bold text-slate-900 text-xs uppercase">' + m.product_name + '</td>'
+                + '<td class="px-6 py-6 font-black text-slate-900 text-sm uppercase">' + m.material_name + '</td>'
+                + '<td class="px-6 py-6 text-center"><span class="text-sm text-slate-900 font-black">' + m.needed + '</span><span class="text-xs text-slate-400 font-bold mx-1">/</span><span class="text-sm font-bold ' + colorClass + '">' + m.in_stock + '</span></td>'
+                + '<td class="px-6 py-6 text-right"><button onclick="requestRestock(\'' + m.material_name + '\',' + m.needed + ',' + m.order_id + ')" class="px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Restock</button></td>';
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function requestRestock(material_name, needed, order_id) {
+        var res = await fetchWithAuth('/api/mrp/production/request_restock/', {
+            method: 'POST',
+            body: JSON.stringify({ material_name: material_name, needed: needed, order_id: order_id })
+        });
+        if (res && res.ok) alert('Restock notification for ' + material_name + ' sent to inventory team!');
+    }
+
+    var ledgerSearch = document.getElementById('ledger-search');
+    if (ledgerSearch) {
+        ledgerSearch.addEventListener('input', function(e) {
+            var val = e.target.value.toLowerCase();
+            document.querySelectorAll('#ledger-tbody tr').forEach(function(tr) {
+                tr.style.display = tr.innerText.toLowerCase().includes(val) ? '' : 'none';
+            });
+        });
+    }
+
+    // Auto-load on navigation
+    loadMaterialsLedger();
+</script>
+{% endblock %}

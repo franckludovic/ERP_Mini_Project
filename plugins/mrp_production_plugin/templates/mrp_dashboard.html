@@ -408,7 +408,7 @@
                     <td class="px-8 py-6">
                         <div class="flex flex-col">
                             <span class="font-black text-slate-900 text-sm">${prod.product_name}</span>
-                            <span class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Order #ORD-${prod.order_id} • ${prod.quantity} Units</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Order #ORD-${prod.order_id} • ${formatCompactNumber(prod.quantity)} Units</span>
                         </div>
                     </td>
                     <td class="px-8 py-6">${priorityHtml}</td>
@@ -434,10 +434,10 @@
                 completed: data.filter(p => p.status === 'completed').length
             };
 
-            document.getElementById('stat-total-runs').innerText = counts.total;
-            document.getElementById('stat-pending').innerText = counts.pending;
-            document.getElementById('stat-in-progress').innerText = counts.in_progress;
-            document.getElementById('stat-completed').innerText = counts.completed;
+            document.getElementById('stat-total-runs').innerText = formatCompactNumber(counts.total);
+            document.getElementById('stat-pending').innerText = formatCompactNumber(counts.pending);
+            document.getElementById('stat-in-progress').innerText = formatCompactNumber(counts.in_progress);
+            document.getElementById('stat-completed').innerText = formatCompactNumber(counts.completed);
 
             // Update progress bars
             const getPercent = (val) => counts.total > 0 ? (val / counts.total) * 100 : 0;
@@ -497,7 +497,7 @@
                 tr.innerHTML = `
                     <td class="px-8 py-6 font-bold text-slate-900 text-sm">${prod.product_name}</td>
                     <td class="px-8 py-6 text-sm text-slate-500">${new Date(prod.start_date).toLocaleDateString()}</td>
-                    <td class="px-8 py-6 text-sm font-bold text-slate-700">${prod.quantity} Units</td>
+                    <td class="px-8 py-6 text-sm font-bold text-slate-700">${formatCompactNumber(prod.quantity)} Units</td>
                     <td class="px-8 py-6 text-right text-xs font-bold text-slate-400 uppercase">Order #ORD-${prod.order_id}</td>
                 `;
                 historyBody.appendChild(tr);
@@ -552,11 +552,11 @@
                 <div class="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors border-b border-slate-50">
                     <div>
                         <p class="font-black text-slate-900 text-sm uppercase tracking-tighter">${m.material_name}</p>
-                        <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Required: ${m.quantity_needed} • Available: ${m.in_stock}</p>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Required: ${formatCompactNumber(m.quantity_needed)} • Available: ${formatCompactNumber(m.in_stock)}</p>
                     </div>
                     <div class="text-right">
                         ${statusHtml}
-                        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Balance: ${diff}</p>
+                        <p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Balance: ${formatCompactNumber(diff)}</p>
                     </div>
                 </div>`;
             });
@@ -595,9 +595,9 @@
                     <td class="px-6 py-6 font-bold text-slate-900 text-xs uppercase">${m.product_name}</td>
                     <td class="px-6 py-6 font-black text-slate-900 text-sm uppercase">${m.material_name}</td>
                     <td class="px-6 py-6 text-center">
-                        <span class="text-sm text-slate-900 font-black">${m.needed}</span>
+                        <span class="text-sm text-slate-900 font-black">${formatCompactNumber(m.needed)}</span>
                         <span class="text-xs text-slate-400 font-bold mx-1">/</span>
-                        <span class="text-sm font-bold ${colorClass}">${m.in_stock}</span>
+                        <span class="text-sm font-bold ${colorClass}">${formatCompactNumber(m.in_stock)}</span>
                     </td>
                     <td class="px-6 py-6 text-right">
                         <button onclick="requestRestock('${m.material_name}', ${m.needed}, ${m.order_id})" class="px-3 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">

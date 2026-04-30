@@ -31,7 +31,7 @@ class UpdateProductSerializer(serializers.ModelSerializer):
     
 class addOrRemoveProductSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
-    quantity = serializers.IntegerField()
+    quantity = serializers.FloatField()
 
     class Meta:
         model = Product
@@ -70,7 +70,7 @@ class UpdateMaterialSerializer(serializers.ModelSerializer):
     
 class addOrRemoveMaterialSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
-    quantity = serializers.IntegerField()
+    quantity = serializers.FloatField()
 
     class Meta:
         model = Material

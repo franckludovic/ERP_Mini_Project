@@ -1,356 +1,257 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends base_template %}
+{% load currency_filters %}
 
-<head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Nexus ERP | Customer Dashboard</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "primary": "#3525cd",
-                        "error": "#ba1a1a",
-                    },
-                    "fontFamily": {
-                        "body-md": ["Inter"],
-                    }
-                },
-            },
-        }
-    </script>
-    <style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-            display: inline-block;
-            line-height: 1;
-            vertical-align: middle;
-        }
+{% block content %}
+<main class="min-h-screen">
+<div class="p-10 space-y-10 max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-start justify-between">
+        <div>
+            <div class="flex items-center gap-3">
+                <h2 class="text-4xl font-black text-slate-900 tracking-tight">Overview</h2>
+                <button onclick="window.location.reload()" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-slate-50" title="Refresh">
+                    <span class="material-symbols-outlined text-[20px]">refresh</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+                <p class="text-slate-500 text-lg">Welcome back, <span class="font-bold text-indigo-600">{{ customer.username }}</span></p>
+                {% if customer.is_premium %}
+                <span class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-500 text-2xl" title="Premium Member">crown</span>
+                    <span class="bg-amber-100 text-amber-700 text-xs font-black px-2 py-0.5 rounded-full uppercase tracking-widest">VIP Member</span>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-        .shadow-lift {
-            box-shadow: 0px 1px 3px rgba(15, 23, 42, 0.05), 0px 10px 15px -3px rgba(15, 23, 42, 0.03);
-        }
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Spending</p>
+            <p class="text-3xl font-black text-slate-900 mt-1">{{ total_spent|smart_currency }} <span class="text-sm font-normal text-slate-400">XAF</span></p>
+            <div class="mt-4 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-600 transition-all" style="width: {{ progress_percent }}%"></div>
+            </div>
+            <p class="text-[10px] text-slate-400 font-semibold mt-2 uppercase">{{ progress_percent }}% to Premium</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Shipments</p>
+            <p class="text-3xl font-black text-slate-900 mt-1">{{ active_shipments_count }}</p>
+            <p class="text-[10px] text-indigo-600 font-bold mt-2 uppercase">In Transit / Processing</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Orders Completed</p>
+            <p class="text-3xl font-black text-slate-900 mt-1">{{ completed_orders_count }}</p>
+            <p class="text-[10px] text-green-600 font-bold mt-2 uppercase">Verified Deliveries</p>
+        </div>
+    </div>
+
+    <!-- Horizontal Place Order Form -->
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                <span class="material-symbols-outlined text-sm">add_shopping_cart</span>
+            </div>
+            <h3 class="text-lg font-black text-slate-900 tracking-tight">Quick Order</h3>
+        </div>
         
-        /* Custom searchable dropdown style */
-        .searchable-dropdown {
-            position: relative;
-        }
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.75rem;
-            margin-top: 0.25rem;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 50;
-            display: none;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-        .search-results div {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-        .search-results div:hover {
-            background-color: #f8fafc;
-            color: #3525cd;
-        }
-    </style>
-</head>
-
-<body class="bg-slate-50 font-body-md text-on-surface antialiased">
-    <!-- SideNavBar Shell -->
-    <aside class="fixed left-0 top-0 h-screen w-64 z-50 bg-white border-r border-slate-200 flex flex-col p-4 gap-y-2">
-        <div class="mb-8 px-2 py-4 text-center">
-            <h1 class="text-2xl font-black text-indigo-600 tracking-tighter">NEXUS</h1>
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Customer Portal</p>
-        </div>
-        <nav class="flex-grow space-y-1">
-            <a class="flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-700 rounded-xl font-bold transition-all" href="{% url 'customer_dashboard' %}">
-                <span class="material-symbols-outlined">dashboard</span>
-                <span>Overview</span>
-            </a>
-            <a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-all" href="{% url 'order_history' %}">
-                <span class="material-symbols-outlined">history</span>
-                <span>History</span>
-            </a>
-            <button onclick="switchTab('notifications')" class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
-                <span class="material-symbols-outlined">notifications</span>
-                <span>Notifications</span>
-            </button>
-        </nav>
-        <div class="mt-auto pt-6 border-t border-slate-100">
-            <div class="flex items-center gap-3 px-2 mb-6">
-                <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-                    {{ customer.username|make_list|first|upper }}
+        <div class="grid grid-cols-12 gap-4 items-end">
+            <!-- Product Search -->
+            <div class="col-span-12 md:col-span-3 relative">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Product Name</label>
+                <input id="product-search" type="text" placeholder="Type to search..."
+                    class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-600 transition-all" />
+                <div id="search-results" class="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-xl mt-1 max-h-48 overflow-y-auto z-50 shadow-lg hidden">
+                    {% for p in products %}
+                    <div class="px-4 py-3 text-sm cursor-pointer hover:bg-slate-50 hover:text-indigo-600"
+                         data-id="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ p.unit_price }}">
+                        {{ p.name }} ({{ p.unit_price }} FCFA)
+                    </div>
+                    {% endfor %}
                 </div>
-                <div class="overflow-hidden">
-                    <p class="text-xs font-bold text-slate-900 truncate">{{ customer.username }}</p>
-                    <p class="text-[10px] text-slate-500 uppercase">{{ customer.get_grade_display|default:"No Grade" }}</p>
-                </div>
-            </div>
-            <a class="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold" href="{% url 'logout' %}">
-                <span class="material-symbols-outlined">logout</span>
-                <span>Logout</span>
-            </a>
-        </div>
-    </aside>
-
-    <!-- Main Content Canvas -->
-    <main class="ml-64 min-h-screen">
-        <div class="p-10 space-y-10">
-            <!-- Page Header -->
-            <div>
-                <h2 id="page-title" class="text-4xl font-black text-slate-900 tracking-tight">Overview</h2>
-                <p id="page-subtitle" class="text-slate-500 mt-2 text-lg">Welcome back, <span class="font-bold text-indigo-600">{{ customer.username }}</span>.</p>
+                <input type="hidden" id="selected-product-id" />
             </div>
 
-            <div id="dashboard-content" class="space-y-10">
-                <!-- Dashboard Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-lift border border-slate-100">
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Spending</p>
-                        <p class="text-3xl font-black text-slate-900 mt-1">{{ total_spent|floatformat:0 }} <span class="text-sm font-normal text-slate-400">XAF</span></p>
-                        <div class="mt-4 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-indigo-600" style="width: {{ progress_percent }}%"></div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-lift border border-slate-100">
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Shipments</p>
-                        <p class="text-3xl font-black text-slate-900 mt-1">{{ active_shipments_count }}</p>
-                        <p class="text-[10px] text-indigo-600 font-bold mt-2 uppercase">In Transit / Processing</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-lift border border-slate-100">
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Orders Completed</p>
-                        <p class="text-3xl font-black text-slate-900 mt-1">{{ completed_orders_count }}</p>
-                        <p class="text-[10px] text-green-600 font-bold mt-2 uppercase">Verified Deliveries</p>
-                    </div>
-                </div>
+            <!-- Grade Select -->
+            <div class="col-span-12 md:col-span-2">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Grade</label>
+                <select id="order-grade" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-600 transition-all font-semibold">
+                    {% for code, label in grade_choices %}
+                    <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-                <!-- Grid: Place Order & Recent Orders -->
-                <div class="grid grid-cols-12 gap-8">
-                    <!-- Place Order Form -->
-                    <div class="col-span-12 lg:col-span-4 bg-white p-8 rounded-3xl shadow-lift border border-slate-100">
-                        <div class="flex items-center gap-3 mb-8">
-                            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                                <span class="material-symbols-outlined">add_shopping_cart</span>
-                            </div>
-                            <h3 class="text-xl font-black text-slate-900 tracking-tight">Place Order</h3>
-                        </div>
-
-                        <div class="space-y-6">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="col-span-2 searchable-dropdown">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Search Product</label>
-                                    <input id="product-search" type="text" placeholder="Type to search..." 
-                                        class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-600 transition-all" />
-                                    <div id="search-results" class="search-results">
-                                        {% for p in products %}
-                                        <div data-id="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ p.unit_price }}">
-                                            {{ p.name }} ({{ p.unit_price }} FCFA)
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                    <input type="hidden" id="selected-product-id" />
-                                </div>
-                                
-                                <div class="col-span-2">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Select Grade</label>
-                                    <select id="order-grade" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-600 transition-all">
-                                        {% for code, label in grade_choices %}
-                                        <option value="{{ code }}">{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-
-                                <div class="col-span-2 grid grid-cols-3 gap-3">
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit</label>
-                                        <input id="unit-price" type="text" readonly value="0" class="w-full bg-slate-100 border-none rounded-xl px-3 py-3 text-sm font-bold text-slate-500" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Qty</label>
-                                        <input id="product-qty" type="number" value="1" min="1" class="w-full bg-slate-50 border-none rounded-xl px-3 py-3 text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-600" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total</label>
-                                        <input id="total-calc" type="text" readonly value="0" class="w-full bg-indigo-50 border-none rounded-xl px-3 py-3 text-sm font-black text-indigo-700" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button onclick="submitNewOrder({{ customer.id }})" 
-                                class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black active:scale-[0.98] transition-all shadow-lg mt-4">
-                                Checkout Order
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Recent Orders Table -->
-                    <div class="col-span-12 lg:col-span-8 bg-white rounded-3xl shadow-lift border border-slate-100 overflow-hidden">
-                        <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-indigo-600">receipt_long</span>
-                                <h3 class="text-xl font-black text-slate-900 tracking-tight">Recent Orders</h3>
-                            </div>
-                            <div class="relative flex-1 max-w-xs">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
-                                <input id="order-search" type="text" placeholder="Search order ID or status..." 
-                                    class="w-full bg-slate-50 border-none rounded-xl pl-10 pr-4 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 transition-all" />
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse" id="orders-table">
-                                <thead>
-                                    <tr class="bg-slate-50/50">
-                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Order Details</th>
-                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Financials</th>
-                                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Control</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-50">
-                                    {% for order in orders %}
-                                    <tr class="hover:bg-slate-50/80 transition-colors order-row">
-                                        <td class="px-8 py-6">
-                                            <p class="font-black text-slate-900 text-sm">#ORD-{{ order.id }}</p>
-                                            <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">{{ order.created_at|date:"d M Y" }}</p>
-                                        </td>
-                                        <td class="px-8 py-6">
-                                            {% if order.status == 'pending' %}
-                                            <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold uppercase tracking-tighter">Pending Approval</span>
-                                            {% elif order.status == 'validated' %}
-                                            <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-bold uppercase tracking-tighter">In Production</span>
-                                            {% elif order.status == 'completed' %}
-                                            <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold uppercase tracking-tighter">Delivered</span>
-                                            {% elif order.status == 'rejected' %}
-                                            <span class="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[10px] font-bold uppercase tracking-tighter">Rejected</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="px-8 py-6">
-                                            <p class="font-black text-slate-900 text-sm">{{ order.total_amount|floatformat:0 }}</p>
-                                            <p class="text-[10px] text-slate-400 font-bold">XAF TOTAL</p>
-                                        </td>
-                                        <td class="px-8 py-6 text-right">
-                                            {% if order.status == 'pending' %}
-                                            <button onclick="handleOrderAction({{ order.id }}, 'reject_order')" 
-                                                class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                                                <span class="material-symbols-outlined">cancel</span>
-                                            </button>
-                                            {% elif order.status == 'completed' and order.delivery_status != 'delivered' %}
-                                            <button onclick="confirmReceipt({{ order.id }})" 
-                                                class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-indigo-700 transition-all">
-                                                Confirm Receipt
-                                            </button>
-                                            {% elif order.status == 'completed' and order.delivery_status == 'delivered' %}
-                                            <span class="material-symbols-outlined text-green-500" title="Delivered">check_circle</span>
-                                            {% else %}
-                                            <span class="material-symbols-outlined text-slate-200">lock</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr>
-                                        <td colspan="4" class="px-8 py-20 text-center">
-                                            <p class="text-slate-400 font-bold uppercase tracking-widest text-sm">No Active Orders Found</p>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            <!-- Unit Price -->
+            <div class="col-span-12 md:col-span-2">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Price</label>
+                <div class="relative">
+                    <input id="unit-price" type="text" readonly value="0" class="w-full bg-slate-100 border-none rounded-xl px-4 py-3 text-sm font-bold text-slate-600" />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">XAF</span>
                 </div>
             </div>
-            <div id="notifications-content" class="hidden h-[calc(100vh-180px)] w-full">
-                <iframe src="/notifications/page/?embed=true" class="w-full h-full border-none"></iframe>
+
+            <!-- Quantity -->
+            <div class="col-span-12 md:col-span-1">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Qty</label>
+                <input id="product-qty" type="number" value="1" min="1" class="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-600" />
+            </div>
+
+            <!-- Total -->
+            <div class="col-span-12 md:col-span-2">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total</label>
+                <div class="relative">
+                    <input id="total-calc" type="text" readonly value="0" class="w-full bg-indigo-50 border-none rounded-xl px-4 py-3 text-sm font-black text-indigo-700" />
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400">XAF</span>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="col-span-12 md:col-span-2">
+                <button onclick="submitNewOrder({{ customer.id }})"
+                    class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-black active:scale-[0.98] transition-all shadow-md">
+                    Order Now
+                </button>
             </div>
         </div>
-    </main>
+    </div>
 
-    <script>
-        function switchTab(tabId) {
-            const dashboardContent = document.getElementById('dashboard-content');
-            const notificationsContent = document.getElementById('notifications-content');
-            const pageTitle = document.getElementById('page-title');
-            const pageSubtitle = document.getElementById('page-subtitle');
-            
-            if (tabId === 'notifications') {
-                dashboardContent.classList.add('hidden');
-                notificationsContent.classList.remove('hidden');
-                pageTitle.textContent = 'Notifications';
-                pageSubtitle.textContent = 'Your activity feed and alerts.';
-            } else {
-                dashboardContent.classList.remove('hidden');
-                notificationsContent.classList.add('hidden');
-                pageTitle.textContent = 'Overview';
-                pageSubtitle.innerHTML = 'Welcome back, <span class="font-bold text-indigo-600">{{ customer.username }}</span>.';
-            }
-            
-            // Update active link styles
-            document.querySelectorAll('aside nav button, aside nav a').forEach(el => {
-                el.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-bold');
-                el.classList.add('text-slate-600');
-            });
-            
-            if (tabId === 'notifications') {
-                const btn = document.querySelector('button[onclick*="notifications"]');
-                btn.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
-                btn.classList.remove('text-slate-600');
-            } else {
-                const link = document.querySelector('a[href*="customer_dashboard"]');
-                link.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
-                link.classList.remove('text-slate-600');
-            }
-        }
+    <!-- Recent Orders Table -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-indigo-600">receipt_long</span>
+                <h3 class="text-xl font-black text-slate-900 tracking-tight">Recent Orders</h3>
+            </div>
+            <div class="relative flex-1 max-w-xs">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                <input id="order-search" type="text" placeholder="Search order ID, product or status..."
+                    class="w-full bg-slate-50 border-none rounded-xl pl-10 pr-4 py-2.5 text-xs focus:ring-2 focus:ring-indigo-600 transition-all" />
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="orders-table">
+                <thead>
+                    <tr class="bg-slate-50/50">
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID / Date</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Qty</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Unit Price</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Total Price</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Control</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for order in orders %}
+                    {% with item=order.items.first %}
+                    <tr class="hover:bg-slate-50/80 transition-colors order-row">
+                        <td class="px-8 py-6">
+                            <p class="font-black text-slate-900 text-sm">#ORD-{{ order.id }}</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">{{ order.created_at|date:"d M Y" }}</p>
+                        </td>
+                        <td class="px-8 py-6">
+                            <p class="font-black text-slate-700 text-sm truncate max-w-[150px]">{{ item.product_name|default:"Unknown Product" }}</p>
+                        </td>
+                        <td class="px-8 py-6">
+                            <p class="font-bold text-slate-900 text-sm">{{ item.quantity|default:"0" }}</p>
+                        </td>
+                        <td class="px-8 py-6 text-right">
+                            <p class="text-sm font-semibold text-slate-500">{{ item.unit_price|default:"0"|smart_currency }}</p>
+                        </td>
+                        <td class="px-8 py-6 text-right">
+                            <div class="flex flex-col items-end gap-1">
+                                <p class="font-black text-indigo-600 text-sm">{{ order.total_amount|smart_currency }}</p>
+                                {% if order.discount_applied > 0 %}
+                                <div class="bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm shadow-emerald-50">
+                                    <span class="text-[9px] text-emerald-600 font-black uppercase tracking-tighter">-{{ settings.premium_discount_percentage|floatformat:0 }}% VIP</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-8 py-6 text-center">
+                            {% if order.status == 'pending' %}
+                            <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Pending Approval</span>
+                            {% elif order.status == 'validated' %}
+                            <span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">In Production</span>
+                            {% elif order.status == 'completed' %}
+                            <span class="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Delivered</span>
+                            {% elif order.status == 'rejected' %}
+                            <span class="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-8 py-6 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                {% if order.status == 'pending' %}
+                                <button onclick="handleOrderAction({{ order.id }}, 'reject_order')"
+                                    class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Cancel Order">
+                                    <span class="material-symbols-outlined text-sm">cancel</span>
+                                </button>
+                                {% elif order.status == 'completed' and order.delivery_status != 'delivered' %}
+                                <button onclick="confirmReceipt({{ order.id }})"
+                                    class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm hover:bg-indigo-700 transition-all">
+                                    Recieved
+                                </button>
+                                {% elif order.status == 'completed' and order.delivery_status == 'delivered' %}
+                                <span class="material-symbols-outlined text-green-500 text-sm" title="Delivered">check_circle</span>
+                                {% else %}
+                                <span class="material-symbols-outlined text-slate-200 text-sm">lock</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-8 py-20 text-center">
+                            <p class="text-slate-400 font-bold uppercase tracking-widest text-sm">No Active Orders Found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</main>
 
-        // --- Searchable Dropdown Logic ---
-        const searchInput = document.getElementById('product-search');
-        const resultsDiv = document.getElementById('search-results');
-        const selectedIdInput = document.getElementById('selected-product-id');
-        const unitPriceInput = document.getElementById('unit-price');
-        const qtyInput = document.getElementById('product-qty');
-        const totalInput = document.getElementById('total-calc');
+<script>
+    // Searchable dropdown
+    var searchInput = document.getElementById('product-search');
+    var resultsDiv = document.getElementById('search-results');
+    var selectedIdInput = document.getElementById('selected-product-id');
+    var unitPriceInput = document.getElementById('unit-price');
+    var qtyInput = document.getElementById('product-qty');
+    var totalInput = document.getElementById('total-calc');
 
+    if (searchInput) {
         searchInput.addEventListener('focus', () => {
-            if(searchInput.value.trim() !== '') resultsDiv.style.display = 'block';
+            if (searchInput.value.trim() !== '') resultsDiv.style.display = 'block';
         });
-
         searchInput.addEventListener('input', () => {
-            const val = searchInput.value.toLowerCase();
-            const items = resultsDiv.querySelectorAll('div');
-            let hasResults = false;
-            
+            var val = searchInput.value.toLowerCase();
+            var items = resultsDiv.querySelectorAll('div');
+            var hasResults = false;
             items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                if(text.includes(val)) {
-                    item.style.display = 'block';
-                    hasResults = true;
-                } else {
-                    item.style.display = 'none';
-                }
+                var text = item.textContent.toLowerCase();
+                if (text.includes(val)) { item.style.display = 'block'; hasResults = true; }
+                else { item.style.display = 'none'; }
             });
             resultsDiv.style.display = hasResults ? 'block' : 'none';
         });
+    }
 
-        document.addEventListener('click', (e) => {
-            if(!e.target.closest('.searchable-dropdown')) {
-                resultsDiv.style.display = 'none';
-            }
-        });
+    document.addEventListener('click', (e) => {
+        if (resultsDiv && !e.target.closest('#product-search') && !e.target.closest('#search-results')) {
+            resultsDiv.style.display = 'none';
+        }
+    });
 
+    if (resultsDiv) {
         resultsDiv.addEventListener('click', (e) => {
-            const item = e.target.closest('div');
-            if(item) {
+            var item = e.target.closest('div[data-id]');
+            if (item) {
                 searchInput.value = item.getAttribute('data-name');
                 selectedIdInput.value = item.getAttribute('data-id');
                 unitPriceInput.value = item.getAttribute('data-price');
@@ -358,106 +259,76 @@
                 updateTotal();
             }
         });
+    }
 
-        function updateTotal() {
-            const price = parseFloat(unitPriceInput.value) || 0;
-            const qty = parseInt(qtyInput.value) || 0;
-            totalInput.value = (price * qty).toLocaleString();
-        }
+    function updateTotal() {
+        var price = parseFloat(unitPriceInput.value) || 0;
+        var qty = parseInt(qtyInput.value) || 0;
+        totalInput.value = (price * qty).toLocaleString();
+    }
 
-        qtyInput.addEventListener('input', updateTotal);
+    if (qtyInput) qtyInput.addEventListener('input', updateTotal);
 
-        // --- Order Search Logic ---
-        document.getElementById('order-search').addEventListener('input', function(e) {
-            const val = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('.order-row');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(val) ? '' : 'none';
+    // Order search
+    var orderSearch = document.getElementById('order-search');
+    if (orderSearch) {
+        orderSearch.addEventListener('input', function(e) {
+            var val = e.target.value.toLowerCase();
+            document.querySelectorAll('.order-row').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(val) ? '' : 'none';
             });
         });
+    }
 
-        // --- API Actions ---
-        function handleOrderAction(orderId, action) {
-            if (!confirm(`Are you sure you want to cancel this order?`)) return;
+    // Order actions
+    function handleOrderAction(orderId, action) {
+        if (!confirm('Are you sure you want to cancel this order?')) return;
+        fetch(`/api/orders/orders/${orderId}/${action}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: "Cancelled by Customer" })
+        }).then(response => {
+            if (response.ok) htmx.ajax('GET', '{% url "customer_overview" %}', { target: '#main-content', swap: 'innerHTML' });
+            else alert('Failed to process action.');
+        });
+    }
 
-            fetch(`/api/orders/orders/${orderId}/${action}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ reason: "Cancelled by Customer" })
-            }).then(response => {
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    alert('Failed to process action.');
-                }
-            });
-        }
+    function confirmReceipt(orderId) {
+        if (!confirm('Are you sure you have received this order?')) return;
+        fetch(`/api/orders/orders/${orderId}/confirm_receipt/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+        }).then(response => {
+            if (response.ok) htmx.ajax('GET', '{% url "customer_overview" %}', { target: '#main-content', swap: 'innerHTML' });
+            else alert('Failed to confirm receipt.');
+        });
+    }
 
-        function confirmReceipt(orderId) {
-            if (!confirm('Are you sure you have received this order?')) return;
-            fetch(`/api/orders/orders/${orderId}/confirm_receipt/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => {
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    alert('Failed to confirm receipt.');
-                }
-            });
-        }
+    function submitNewOrder(customerId) {
+        var productId = selectedIdInput ? selectedIdInput.value : '';
+        var productName = searchInput ? searchInput.value : '';
+        var unitPrice = parseFloat(unitPriceInput ? unitPriceInput.value : 0);
+        var quantity = parseInt(qtyInput ? qtyInput.value : 1);
+        var grade = document.getElementById('order-grade') ? document.getElementById('order-grade').value : '';
 
-        function submitNewOrder(customerId) {
-            const productId = selectedIdInput.value;
-            const productName = searchInput.value;
-            const unitPrice = parseFloat(unitPriceInput.value);
-            const quantity = parseInt(qtyInput.value);
-            const grade = document.getElementById('order-grade').value;
+        if (!productId || quantity <= 0) { alert("Please select a valid product and quantity."); return; }
 
-            if (!productId || quantity <= 0) {
-                alert("Please select a valid product and quantity.");
-                return;
-            }
-
-            const payload = {
+        fetch('/api/orders/orders/place_order/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 user_id: customerId,
                 grade: grade,
-                items: [
-                    {
-                        product_name: productName,
-                        product_id: parseInt(productId),
-                        quantity: quantity,
-                        unit_price: unitPrice
-                    }
-                ]
-            };
-
-            fetch('/api/orders/orders/place_order/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            }).then(response => {
-                if (response.ok) {
-                    alert('Order placed successfully!');
-                    window.location.reload();
-                } else {
-                    response.json().then(data => {
-                        alert('Failed: ' + JSON.stringify(data));
-                    });
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+                items: [{ product_name: productName, product_id: parseInt(productId), quantity: quantity, unit_price: unitPrice }]
+            })
+        }).then(response => {
+            if (response.ok) {
+                alert('Order placed successfully!');
+                htmx.ajax('GET', '{% url "customer_overview" %}', { target: '#main-content', swap: 'innerHTML' });
+            } else {
+                response.json().then(data => alert('Failed: ' + JSON.stringify(data)));
+            }
+        });
+    }
+</script>
+{% endblock %}

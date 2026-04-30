@@ -74,6 +74,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'libraries': {
+                'currency_filters': 'plugins.orders_plugin.templatetags.currency_filters',
+            }
         },
     },
 ]

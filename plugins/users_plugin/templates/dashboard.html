@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html class="light" lang="en"><head>
+<html class="light" lang="en">
+{% load currency_filters %}
+<head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Nexus ERP - Order Management</title>
@@ -79,7 +81,7 @@
 </div>
 </div>
 <p class="text-slate-500 text-sm font-medium">Total Active Orders</p>
-<h3 class="text-2xl font-bold text-slate-900">{{ total_active_orders }}</h3>
+<h3 class="text-2xl font-bold text-slate-900">{{ total_active_orders|smart_currency }}</h3>
 </div>
 <div class="bg-white p-6 rounded-xl shadow-[0px_1px_3px_rgba(15,23,42,0.05),0px_10px_15px_-3px_rgba(15,23,42,0.03)] border border-slate-100">
 <div class="flex justify-between items-start mb-4">
@@ -89,7 +91,7 @@
 <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Requires Action</span>
 </div>
 <p class="text-slate-500 text-sm font-medium">Urgent Orders</p>
-<h3 class="text-2xl font-bold text-slate-900">{{ urgent_mismatches }}</h3>
+<h3 class="text-2xl font-bold text-slate-900">{{ urgent_mismatches|smart_currency }}</h3>
 </div>
 <div class="bg-white p-6 rounded-xl shadow-[0px_1px_3px_rgba(15,23,42,0.05),0px_10px_15px_-3px_rgba(15,23,42,0.03)] border border-slate-100">
 <div class="flex justify-between items-start mb-4">
@@ -98,7 +100,7 @@
 </div>
 </div>
 <p class="text-slate-500 text-sm font-medium">Pending Value</p>
-<h3 class="text-2xl font-bold text-slate-900">{{ pending_value|floatformat:2 }} FCFA</h3>
+<h3 class="text-2xl font-bold text-slate-900">{{ pending_value|smart_currency }} FCFA</h3>
 </div>
 </div>
 <div class="bg-white rounded-xl shadow-[0px_1px_3px_rgba(15,23,42,0.05),0px_10px_15px_-3px_rgba(15,23,42,0.03)] border border-slate-100 overflow-hidden">
@@ -143,7 +145,7 @@
 </span>
 </td>
 <td class="px-6 py-4">
-<span class="text-sm font-bold text-slate-900">{{ order.total_amount|floatformat:2 }} FCFA</span>
+<span class="text-sm font-bold text-slate-900">{{ order.total_amount|smart_currency }} FCFA</span>
 </td>
 <td class="px-6 py-4">
 {% if order.status == 'pending' %}

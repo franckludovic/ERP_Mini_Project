@@ -110,7 +110,23 @@ from django.contrib.auth.decorators import login_required
 @login_required
 @xframe_options_sameorigin
 def notifications_page(request):
-    base_template = 'admin_dashboard/partial.html' if request.headers.get('HX-Request') else 'admin_dashboard/base.html'
+    is_customer_context = '/customer/' in request.path
+    is_production_context = '/production/' in request.path
+    
+    if request.headers.get('HX-Request'):
+        if is_customer_context:
+            base_template = 'customer_dashboard/partial.html'
+        elif is_production_context:
+            base_template = 'production_manager/partial.html'
+        else:
+            base_template = 'admin_dashboard/partial.html'
+    else:
+        if is_customer_context:
+            base_template = 'customer_dashboard/base.html'
+        elif is_production_context:
+            base_template = 'production_manager/base.html'
+        else:
+            base_template = 'admin_dashboard/base.html'
     return render(request, "notifications/notifications.html", {
         "user_id": request.user.id,
         "username": request.user.username,

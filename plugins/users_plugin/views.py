@@ -1,14 +1,9 @@
-# from rest_framework import status, generics, permissions
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from rest_framework_simplejwt.tokens import RefreshToken
-# from django.contrib.auth import authenticate, get_user_model
-# from django.shortcuts import render
-# from .serializers import (
-#     UserSerializer, RegisterSerializer, LoginSerializer, 
-#     ProfileSerializer, UserUpdateSerializer
-# )
-# # from .models import User
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .models import User, GlobalSettings
 
 # User = get_user_model()
 
@@ -609,7 +604,7 @@ def _get_user_context(user):
         'grade': user.get_grade_display(),
         'transaction_count': user.transaction_count,
         'total_spent': user.total_spent,
-        'is_premium': user.is_premium(),
+        'is_premium': user.is_premium,
         'is_banned': user.is_banned,
         'ban_until': user.ban_until.isoformat() if user.ban_until else None,
     }
@@ -663,9 +658,9 @@ def login_view(request):
         if user.role == 'admin':
             return redirect('admin_dashboard')
         elif user.role == 'production_manager':
-            return redirect('mrp_dashboard')
+            return redirect('pm_production')
         else:
-            return redirect('customer_dashboard')
+            return redirect('customer_overview')
 
     return render(request, 'login.html')
 
@@ -754,19 +749,31 @@ def user_management_template(request):
     users = User.objects.all().order_by('-date_joined')
     user_data = [_get_user_context(u) for u in users]
 
+    settings = GlobalSettings.get_settings()
     base_template = 'admin_dashboard/partial.html' if request.headers.get('HX-Request') else 'admin_dashboard/base.html'
 
     return render(request, 'user-management.html', {
         'admin': _get_user_context(admin_user),
         'users': user_data,
+        'settings': settings,
         'role_choices': User.ROLE_CHOICES,
         'grade_choices': User.GRADE_CHOICES,
         'base_template': base_template,
     })
 
-from django.utils import timezone
-from datetime import timedelta
-from rest_framework.decorators import api_view
+@api_view(['POST'])
+def update_global_settings(request):
+    """Update system-wide settings for premium status and discounts"""
+    from .models import GlobalSettings
+    settings = GlobalSettings.get_settings()
+    
+    settings.premium_transaction_threshold = int(request.data.get('threshold_tx', settings.premium_transaction_threshold))
+    settings.premium_spending_threshold = float(request.data.get('threshold_spent', settings.premium_spending_threshold))
+    settings.premium_discount_percentage = float(request.data.get('discount_pct', settings.premium_discount_percentage))
+    settings.save()
+    
+    return Response({'success': True, 'message': 'Settings updated successfully'})
+
 
 @api_view(['POST'])
 def ban_user(request, user_id):

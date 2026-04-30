@@ -1,0 +1,298 @@
+{% extends base_template %}
+
+{% block content %}
+<div class="p-8 space-y-8 max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Active Production</h2>
+            <button onclick="loadPage()" class="p-1.5 text-slate-400 hover:text-indigo-600 transition-all rounded-lg hover:bg-slate-50" title="Refresh">
+                <span class="material-symbols-outlined text-[20px]">refresh</span>
+            </button>
+        </div>
+        <button onclick="triggerFetchOrders()" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[18px]" id="sync-icon">sync</span>
+            Sync Validated Orders
+        </button>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Runs</p>
+            <p id="stat-total-runs" class="text-3xl font-black text-slate-900">0</p>
+            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-500" style="width:100%"></div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pending</p>
+            <p id="stat-pending" class="text-3xl font-black text-amber-500">0</p>
+            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="stat-pending-bar" class="h-full bg-amber-400" style="width:0%"></div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">In Progress</p>
+            <p id="stat-in-progress" class="text-3xl font-black text-indigo-600">0</p>
+            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="stat-in-progress-bar" class="h-full bg-indigo-600" style="width:0%"></div>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Completed</p>
+            <p id="stat-completed" class="text-3xl font-black text-green-600">0</p>
+            <div class="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div id="stat-completed-bar" class="h-full bg-green-500" style="width:0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-8 py-6 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4 bg-slate-50/50">
+            <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                Active Production Orders
+                <span id="total-rows-badge" class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md text-[10px] font-bold">0 ITEMS</span>
+            </h3>
+            <div class="flex items-center gap-3 flex-wrap">
+                <select id="filter-status" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm text-slate-600 font-medium">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                </select>
+                <select id="filter-priority" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm text-slate-600 font-medium">
+                    <option value="">All Priorities</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="high">High</option>
+                    <option value="normal">Normal</option>
+                    <option value="low">Low</option>
+                </select>
+                <select id="filter-logistics" onchange="applyMrpFilters()" class="py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm text-slate-600 font-medium">
+                    <option value="">All Logistics</option>
+                    <option value="pending">Pending</option>
+                    <option value="shipped">Shipped</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                    <input type="text" id="mrp-search" oninput="applyMrpFilters()" placeholder="Search orders..."
+                        class="pl-10 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-48 shadow-sm">
+                </div>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/50">
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product / Order</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Priority</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logistics</th>
+                        <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="production-tbody" class="divide-y divide-slate-50"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- BOM Modal -->
+<div id="bom-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl border border-slate-200 flex flex-col max-h-[80vh]">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-slate-900" id="modal-title">Bill of Materials</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-1 transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1">
+            <div class="divide-y divide-slate-50" id="modal-content"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentProductions = [];
+
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function fetchWithAuth(url, options) {
+        options = options || {};
+        var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+        var csrf = getCookie('csrftoken');
+        if (csrf) headers['X-CSRFToken'] = csrf;
+        return fetch(url, Object.assign({}, options, { headers }));
+    }
+
+    function loadPage() {
+        fetchProductions();
+    }
+
+    async function fetchProductions() {
+        var res = await fetchWithAuth('/api/mrp/production/');
+        if (!res) return;
+        var data = await res.json();
+        currentProductions = data;
+
+        var tbody = document.getElementById('production-tbody');
+        var badge = document.getElementById('total-rows-badge');
+        tbody.innerHTML = '';
+
+        var activeItems = data.filter(function(p) { return p.status !== 'completed'; });
+        badge.innerText = activeItems.length + ' ACTIVE ITEMS';
+
+        if (activeItems.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center"><span class="material-symbols-outlined block text-5xl text-slate-200 mb-2">inbox</span><p class="text-sm font-bold text-slate-400 uppercase tracking-widest">No active production runs</p></td></tr>';
+            updateMetrics(data);
+            return;
+        }
+
+        activeItems.forEach(function(prod) {
+            var tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/80 transition-colors';
+
+            var priorityHtml = prod.priority_level === 'urgent'
+                ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-red-50 text-red-600 border border-red-100 uppercase"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>Urgent</span>'
+                : '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 uppercase">' + prod.priority_level + '</span>';
+
+            var statusHtml = prod.status === 'pending'
+                ? '<span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full uppercase border border-amber-100">Pending Start</span>'
+                : '<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase border border-indigo-100">In Production</span>';
+
+            var expectedDate = prod.expected_delivery_date
+                ? new Date(prod.expected_delivery_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                : '—';
+
+            var actionsHtml = '<div class="flex justify-end gap-2"><button onclick="viewMaterials(' + prod.id + ')" class="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors">Details</button>';
+            if (prod.status === 'pending') {
+                actionsHtml += '<button onclick="startProduction(' + prod.id + ')" class="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-black transition-all">Start Run</button>';
+            } else {
+                actionsHtml += '<button onclick="completeProduction(' + prod.id + ')" class="px-4 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-green-700 transition-all">Complete</button>';
+            }
+            actionsHtml += '</div>';
+
+            tr.innerHTML = '<td class="px-8 py-6"><div class="flex flex-col"><span class="font-black text-slate-900 text-sm">' + prod.product_name + '</span><span class="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Order #ORD-' + prod.order_id + ' • ' + prod.quantity + ' Units</span></div></td>'
+                + '<td class="px-8 py-6">' + priorityHtml + '</td>'
+                + '<td class="px-8 py-6">' + statusHtml + '</td>'
+                + '<td class="px-8 py-6"><div class="flex flex-col"><span class="text-[10px] font-bold text-slate-500 uppercase">' + prod.delivery_status + '</span><span class="text-[9px] text-slate-400">ETA: ' + expectedDate + '</span></div></td>'
+                + '<td class="px-8 py-6 text-right">' + actionsHtml + '</td>';
+
+            tr.dataset.status = prod.status;
+            tr.dataset.priority = prod.priority_level;
+            tr.dataset.logistics = prod.delivery_status;
+            tbody.appendChild(tr);
+        });
+
+        updateMetrics(data);
+        applyMrpFilters();
+    }
+
+    function updateMetrics(data) {
+        var total = data.length;
+        var pending = data.filter(function(p){ return p.status === 'pending'; }).length;
+        var inProgress = data.filter(function(p){ return p.status === 'in_progress'; }).length;
+        var completed = data.filter(function(p){ return p.status === 'completed'; }).length;
+
+        document.getElementById('stat-total-runs').innerText = total;
+        document.getElementById('stat-pending').innerText = pending;
+        document.getElementById('stat-in-progress').innerText = inProgress;
+        document.getElementById('stat-completed').innerText = completed;
+
+        var pct = function(v){ return total > 0 ? (v / total * 100) + '%' : '0%'; };
+        document.getElementById('stat-pending-bar').style.width = pct(pending);
+        document.getElementById('stat-in-progress-bar').style.width = pct(inProgress);
+        document.getElementById('stat-completed-bar').style.width = pct(completed);
+    }
+
+    async function triggerFetchOrders() {
+        var icon = document.getElementById('sync-icon');
+        if (icon) icon.classList.add('animate-spin');
+        var res = await fetchWithAuth('/api/mrp/production/fetch_orders/', { method: 'POST' });
+        if (icon) icon.classList.remove('animate-spin');
+        if (res && res.ok) fetchProductions();
+    }
+
+    async function startProduction(id) {
+        var res = await fetchWithAuth('/api/mrp/production/' + id + '/start/', { method: 'POST' });
+        if (res && res.ok) { fetchProductions(); }
+        else if (res) { var d = await res.json(); alert(d.error || 'Failed to start production.'); }
+    }
+
+    async function completeProduction(id) {
+        var res = await fetchWithAuth('/api/mrp/production/' + id + '/complete/', { method: 'POST' });
+        if (res && res.ok) { fetchProductions(); }
+        else if (res) { var d = await res.json(); alert(d.error || 'Failed to complete production.'); }
+    }
+
+    async function viewMaterials(id) {
+        document.getElementById('modal-title').innerText = 'Order Details & BOM (#ORD-' + id + ')';
+        var content = document.getElementById('modal-content');
+        content.innerHTML = '<div class="text-center p-10 text-slate-400 animate-pulse">Loading order details...</div>';
+        document.getElementById('bom-modal').classList.remove('hidden');
+
+        var res = await fetchWithAuth('/api/mrp/production/' + id + '/required_materials/');
+        if (!res) { closeModal(); return; }
+        var data = await res.json();
+        if (!res.ok || data.error) { content.innerHTML = '<div class="p-10 text-center text-red-500 font-bold">' + (data.error || 'Failed to load details.') + '</div>'; return; }
+
+        var html = '<div class="p-6 bg-slate-50 border-b border-slate-100 grid grid-cols-2 gap-4">'
+            + '<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Product</p><p class="text-sm font-black text-slate-900">' + data.product_name + '</p></div>'
+            + '<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Quantity</p><p class="text-sm font-black text-slate-900">' + data.quantity + ' Units</p></div>'
+            + '<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</p><p class="text-sm font-black text-slate-900 uppercase">' + data.priority + '</p></div>'
+            + '<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Value</p><p class="text-sm font-black text-indigo-600">' + parseFloat(data.total_value).toLocaleString() + ' FCFA</p></div>'
+            + '</div><div class="p-4 bg-white font-bold text-xs text-slate-900 uppercase tracking-widest border-b border-slate-100">Bill of Materials</div>';
+
+        data.materials.forEach(function(m) {
+            var diff = m.in_stock - m.quantity_needed;
+            var statusHtml = m.is_sufficient
+                ? '<span class="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded uppercase">Sufficient</span>'
+                : '<span class="text-[10px] font-black text-red-600 bg-red-50 px-2 py-1 rounded uppercase">Shortage</span>';
+            html += '<div class="p-6 flex items-center justify-between hover:bg-slate-50 border-b border-slate-50">'
+                + '<div><p class="font-black text-slate-900 text-sm uppercase">' + m.material_name + '</p>'
+                + '<p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Required: ' + m.quantity_needed + ' • Available: ' + m.in_stock + '</p></div>'
+                + '<div class="text-right">' + statusHtml + '<p class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Balance: ' + diff + '</p></div></div>';
+        });
+        content.innerHTML = html;
+    }
+
+    function closeModal() {
+        document.getElementById('bom-modal').classList.add('hidden');
+    }
+
+    function applyMrpFilters() {
+        var search = (document.getElementById('mrp-search') || {}).value ? document.getElementById('mrp-search').value.toLowerCase() : '';
+        var statusVal = (document.getElementById('filter-status') || {}).value || '';
+        var priorityVal = (document.getElementById('filter-priority') || {}).value || '';
+        var logisticsVal = (document.getElementById('filter-logistics') || {}).value || '';
+        var count = 0;
+        document.querySelectorAll('#production-tbody tr').forEach(function(tr) {
+            var show = tr.innerText.toLowerCase().includes(search)
+                && (!statusVal || tr.dataset.status === statusVal)
+                && (!priorityVal || tr.dataset.priority === priorityVal)
+                && (!logisticsVal || tr.dataset.logistics === logisticsVal);
+            tr.style.display = show ? '' : 'none';
+            if (show) count++;
+        });
+        var badge = document.getElementById('total-rows-badge');
+        if (badge) badge.innerText = count + ' ITEMS';
+    }
+
+    // Auto-load on page swap
+    triggerFetchOrders().then(function() { fetchProductions(); });
+</script>
+{% endblock %}

@@ -27,6 +27,16 @@ urlpatterns = [
     path('order_dashboard/',     order_views.dashboard_view, name='order_dashboard'),
     path('customer_dashboard/',  order_views.customer_dashboard_view, name='customer_dashboard'),
     path('order_history/',       order_views.order_history_view, name='order_history'),
+
+    path('customer/', include([
+        path('', RedirectView.as_view(url='overview/'), name='customer_root'),
+        path('', include('plugins.orders_plugin.urls_customer')),
+    ])),
+
+    path('production/', include([
+        path('', RedirectView.as_view(url='production/'), name='pm_root'),
+        path('', include('plugins.mrp_production_plugin.urls_pm')),
+    ])),
     path('api/token/',        TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('admin/',            admin.site.urls),
     path('api/users/',        include('plugins.users_plugin.urls')),

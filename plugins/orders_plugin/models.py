@@ -28,7 +28,7 @@ class Order(models.Model):
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    discount_applied = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    discount_applied = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
